@@ -4,6 +4,10 @@ plugins {
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false
 
-    // Add the dependency for the Google services Gradle plugin
-    id("com.google.gms.google-services") version "4.4.3" apply false
+    // Plugin Google Services via alias del catalogo
+    alias(libs.plugins.google.services) apply false
+    // Hilt (se avrai moduli che lo applicano a livello di modulo)
+    alias(libs.plugins.hilt.android) apply false
+    // Kapt (verrà applicato nel modulo :app)
+    alias(libs.plugins.kotlin.kapt) apply false
 }
