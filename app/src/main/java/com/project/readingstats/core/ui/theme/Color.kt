@@ -1,4 +1,4 @@
-package com.project.readingstats.ui.theme
+package com.project.readingstats.core.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
