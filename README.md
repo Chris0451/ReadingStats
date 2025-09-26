@@ -1,4 +1,4 @@
-# 📚 Reading Challenge
+# 📚 Reading Stats
 
 Applicazione Android sviluppata in **Jetpack Compose** con architettura **MVVM**.  
 Il progetto integra **Firebase (Auth + Firestore)** per la gestione degli utenti e dei dati, e la **Google Books API** per la ricerca e i metadati dei libri.  
