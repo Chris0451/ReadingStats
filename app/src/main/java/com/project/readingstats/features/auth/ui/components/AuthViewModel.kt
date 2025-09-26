@@ -86,16 +86,16 @@ class AuthViewModel @Inject constructor(
                     )
                 }
                 is RegisterResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isSubmitting = false,
-                        error = when(result.code) {
-                            "EMAIL_IN_USE" -> "Email già in uso"
-                            "USERNAME_TAKEN" -> "Username già in uso"
-                            "NETWORK" -> "Errore di rete"
-                            else -> result.message ?: "Errore sconosciuto"
+                    val human =
+                        when (result.code) {
+                            "EMAIL_IN_USE" -> "Email già registrata."
+                            "USERNAME_TAKEN" -> "Username non disponibile."
+                            "NETWORK" -> "Problema di rete, riprova."
+                            else -> "Auth error: ${result.code}\n${result.message ?: ""}" // <-- mostra codice reale (es. CONFIGURATION_NOT_FOUND)
                         }
-                    )
+                    _uiState.value = _uiState.value.copy(isSubmitting = false, error = human.trim())
                 }
+
             }
         }
     }
