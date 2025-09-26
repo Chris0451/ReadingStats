@@ -11,7 +11,7 @@ activityCompose = "1.11.0"
 composeBom = "2025.09.01"
 
 # DI (Direct Injection) & Coroutines
-hilt = "2.57"
+hilt = "2.57.2"
 coroutines = "1.9.0"
 
 # Firebase
