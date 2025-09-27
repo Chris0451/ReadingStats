@@ -8,5 +8,9 @@ class FirebaseAuthDataSource(
 ) {
     suspend fun createUser(email: String, password: String) = auth.createUserWithEmailAndPassword(email, password).await()
 
+    suspend fun signIn(email: String, password: String) = auth.signInWithEmailAndPassword(email, password).await()
+
+    suspend fun signOut() = auth.signOut()
+
     fun currentUid(): String? = auth.currentUser?.uid
 }

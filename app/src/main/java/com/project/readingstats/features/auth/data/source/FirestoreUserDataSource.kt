@@ -2,6 +2,7 @@ package com.project.readingstats.features.auth.data.source
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.project.readingstats.features.auth.data.model.UserModelDto
 import kotlinx.coroutines.tasks.await
 
 class FirestoreUserDataSource (
@@ -13,6 +14,10 @@ class FirestoreUserDataSource (
     suspend fun isUsernameTaken(username: String): Boolean {
         val id = username.trim().lowercase()
         return usernames.document(id).get().await().exists()
+    }
+
+    suspend fun userExists(uid: String): Boolean {
+        return users.document(uid).get().await().exists()
     }
 
     suspend fun createUserAtomically(
@@ -32,4 +37,17 @@ class FirestoreUserDataSource (
             transaction.set(userRef, profile, SetOptions.merge())
         }.await()
     }
+
+    suspend fun getUserProfile(uid: String): UserModelDto? {
+        val snapshot = users.document(uid).get().await()
+        if(!snapshot.exists()) return null
+        return UserModelDto(
+            uid = snapshot.getString("uid") ?: uid,
+            name = snapshot.getString("name") ?: "",
+            surname = snapshot.getString("surname") ?: "",
+            username = snapshot.getString("username") ?: "",
+            email = snapshot.getString("email") ?: "",
+        )
+    }
+
 }

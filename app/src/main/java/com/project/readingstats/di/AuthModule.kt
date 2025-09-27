@@ -7,6 +7,7 @@ import com.project.readingstats.features.auth.data.source.FirebaseAuthDataSource
 import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
 import com.project.readingstats.features.auth.domain.repository.AuthRepository
 import com.project.readingstats.features.auth.domain.usecase.CheckUsernameAvailableUseCase
+import com.project.readingstats.features.auth.domain.usecase.LoginUserUseCase
 import com.project.readingstats.features.auth.domain.usecase.RegisterUserUseCase
 import dagger.Module
 import dagger.Provides
@@ -17,10 +18,13 @@ import dagger.hilt.components.SingletonComponent
 @Module                                    // <-- OBBLIGATORIO
 @InstallIn(SingletonComponent::class)      // <-- OBBLIGATORIO
 object AuthModule {
-    @Provides @Singleton fun provideAuth(): FirebaseAuth = FirebaseAuth.getInstance()
-    @Provides @Singleton fun provideDb(): FirebaseFirestore = FirebaseFirestore.getInstance()
+    @Provides @Singleton
+    fun provideAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+    @Provides @Singleton
+    fun provideDb(): FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    @Provides @Singleton fun provideAuthDs(auth: FirebaseAuth) = FirebaseAuthDataSource(auth)
+    @Provides @Singleton
+    fun provideAuthDs(auth: FirebaseAuth) = FirebaseAuthDataSource(auth)
 
     @Provides @Singleton
     fun provideUserDs(db: FirebaseFirestore) = FirestoreUserDataSource(db)
@@ -36,4 +40,7 @@ object AuthModule {
 
     @Provides @Singleton
     fun provideRegister(repository: AuthRepository) = RegisterUserUseCase(repository)
+
+    @Provides @Singleton
+    fun provideLogin(repository: AuthRepository) = LoginUserUseCase(repository)
 }

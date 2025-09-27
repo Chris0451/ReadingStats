@@ -2,9 +2,11 @@ package com.project.readingstats.features.auth.ui.components
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.project.readingstats.features.auth.domain.repository.LoginResult
 import com.project.readingstats.features.auth.domain.repository.RegisterResult
 import com.project.readingstats.features.auth.domain.usecase.CheckUsernameAvailableUseCase
 import com.project.readingstats.features.auth.domain.usecase.RegisterUserUseCase
+import com.project.readingstats.features.auth.domain.usecase.LoginUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -34,11 +36,26 @@ data class RegistrationFormState(
                 password == confirmPassword &&
                 (usernameAvailable == true)
 }
+
+data class LoginFormState(
+    val email: String = "",
+    val password: String = "",
+    val isSubmitting: Boolean = false,
+    val error: String? = null,
+    val success: Boolean = false
+){
+    val canSubmit: Boolean
+        get() = android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() &&
+                password.length >= 6
+}
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val checkUsernameAvailableUseCase: CheckUsernameAvailableUseCase,
-    private val registerUserUseCase: RegisterUserUseCase
+    private val registerUserUseCase: RegisterUserUseCase,
+    private val loginUserUseCase: LoginUserUseCase
 ): ViewModel() {
+
+    // --- Registration state ---
     private val _uiState = MutableStateFlow(RegistrationFormState())
     val uiState = _uiState.asStateFlow()
 
@@ -98,5 +115,48 @@ class AuthViewModel @Inject constructor(
 
             }
         }
+    }
+
+    // --- Login state ---
+    private val _loginState = MutableStateFlow(LoginFormState())
+    val loginState = _loginState.asStateFlow()
+
+    fun onLoginEmailChange(v: String){
+        _loginState.value = _loginState.value.copy(email = v, error = null)
+    }
+    fun onLoginPasswordChange(v: String){
+        _loginState.value = _loginState.value.copy(password = v, error = null)
+    }
+
+    fun submitLogin(){
+        val state = _loginState.value
+        if(!state.canSubmit || state.isSubmitting) return
+
+        viewModelScope.launch {
+            _loginState.value = state.copy(isSubmitting = true, error = null)
+            when (val result = loginUserUseCase(state.email.trim(), state.password)) {
+                is LoginResult.Success -> {
+                    _loginState.value = _loginState.value.copy(isSubmitting = false, success = true)
+                }
+                is LoginResult.Error -> {
+                    val msg = when (result.code) {
+                        "ERROR_INVALID_EMAIL"     -> "Email non valida."
+                        "ERROR_USER_NOT_FOUND"    -> "Utente inesistente."
+                        "ERROR_WRONG_PASSWORD"    -> "Password errata."
+                        "ERROR_USER_DISABLED"     -> "Utente disabilitato."
+                        "USER_PROFILE_MISSING"    -> "Profilo utente mancante. Completa la registrazione."
+                        "NETWORK"                 -> "Problema di rete, riprova."
+                        "CONFIGURATION_NOT_FOUND" -> "Configurazione Firebase non valida."
+                        else -> "Auth error: ${result.code}"
+                    }
+                    _loginState.value = _loginState.value.copy(isSubmitting = false, error = msg)
+                }
+
+            }
+        }
+    }
+
+    fun clearLoginError(){
+        _loginState.value = _loginState.value.copy(error = null)
     }
 }

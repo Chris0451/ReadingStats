@@ -8,6 +8,7 @@ import com.project.readingstats.features.auth.data.source.FirestoreUserDataSourc
 import com.project.readingstats.features.auth.domain.repository.AuthRepository
 import com.project.readingstats.features.auth.domain.repository.RegisterResult
 import com.project.readingstats.features.auth.data.model.UserModelDto
+import com.project.readingstats.features.auth.domain.repository.LoginResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -65,6 +66,39 @@ class AuthRepositoryImpl(
             val fe = e as? com.google.firebase.auth.FirebaseAuthException
             val code = fe?.errorCode ?: e::class.qualifiedName.orEmpty()
             RegisterResult.Error(code.ifBlank { "GENERIC" }, e.message ?: e.toString())
+        }
+    }
+
+    override suspend fun login(
+        email: String,
+        password: String
+    ): LoginResult = withContext(Dispatchers.IO) {
+        try{
+            auth.signIn(email, password)
+            val uid = auth.currentUid() ?: return@withContext LoginResult.Error("AUTH_ERROR", "User ID mancante")
+
+            val exists = store.userExists(uid)
+            if(!exists) {
+                auth.signOut()
+                return@withContext LoginResult.Error("USER_NOT_FOUND", "Utente non trovato")
+            }
+            LoginResult.Success
+        } catch (e: FirebaseAuthException) {
+            val human = when (e.errorCode) {
+                "ERROR_INVALID_EMAIL"      -> "Email non valida."
+                "ERROR_USER_NOT_FOUND"     -> "Utente inesistente."
+                "ERROR_WRONG_PASSWORD"     -> "Password errata."
+                "ERROR_USER_DISABLED"      -> "Utente disabilitato."
+                "CONFIGURATION_NOT_FOUND"  -> "Configurazione Firebase non valida."
+                else -> null
+            }
+            LoginResult.Error(e.errorCode ?: "AUTH_ERROR", human ?: e.message)
+        } catch (e: FirebaseNetworkException) {
+            LoginResult.Error("NETWORK", "Problema di rete, riprova")
+        } catch (e: Exception) {
+            val fe = e as? FirebaseAuthException
+            val code = fe?.errorCode ?: e::class.qualifiedName.orEmpty()
+            LoginResult.Error(code.ifBlank { "GENERIC" }, e.message ?: e.toString())
         }
     }
 }

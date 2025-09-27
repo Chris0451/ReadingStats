@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme{
                 Surface{
-                    AppNavHost(start = Screen.Register)
+                    AppNavHost(start = Screen.Login)
                 }
             }
         }

@@ -5,6 +5,11 @@ sealed interface RegisterResult {
     data class Error(val code: String, val message: String?): RegisterResult
 }
 
+sealed interface LoginResult {
+    data object Success: LoginResult
+    data class Error(val code: String, val message: String?): LoginResult
+}
+
 interface AuthRepository {
     suspend fun isUsernameAvailable(username: String): Boolean
     suspend fun register(
@@ -14,4 +19,6 @@ interface AuthRepository {
         email: String,
         password: String
     ): RegisterResult
+
+    suspend fun login(email: String, password: String): LoginResult
 }

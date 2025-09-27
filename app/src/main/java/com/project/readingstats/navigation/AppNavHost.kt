@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.features.auth.ui.components.AuthViewModel
+import com.project.readingstats.features.auth.ui.components.LoginScreen
 import com.project.readingstats.features.auth.ui.components.RegistrationScreen
 
 @Composable
@@ -26,11 +27,32 @@ fun AppNavHost(
         startDestination = start.route,
         modifier = modifier
     ) {
+        composable(Screen.Login.route) {
+            LoginRoute(
+                onLoginSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onRegisterClick = {
+                    navController.navigate(Screen.Register.route){
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
         composable(Screen.Register.route) {
             RegistrationRoute(
                 onRegistered = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Register.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onLoginClick = {
+                    navController.popBackStack()
+                    navController.navigate(Screen.Login.route){
                         launchSingleTop = true
                     }
                 }
@@ -39,7 +61,7 @@ fun AppNavHost(
         composable(Screen.Home.route) {
             HomeScreen(onLogout = {
                 FirebaseAuth.getInstance().signOut()
-                navController.navigate(Screen.Register.route) {
+                navController.navigate(Screen.Login.route) {
                     popUpTo(0)
                 }
             })
@@ -50,13 +72,28 @@ fun AppNavHost(
 }
 
 @Composable
+fun LoginRoute(
+    viewModel: AuthViewModel = hiltViewModel(),
+    onLoginSuccess: () -> Unit,
+    onRegisterClick: () -> Unit
+) {
+    LoginScreen(
+        viewModel = viewModel,
+        onLoginSuccess = onLoginSuccess,
+        onRegisterClick = onRegisterClick
+    )
+}
+
+@Composable
 fun RegistrationRoute(
     onRegistered: () -> Unit,
+    onLoginClick: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     RegistrationScreen(
         viewModel = viewModel,
-        onRegistered = onRegistered
+        onRegistered = onRegistered,
+        onLoginClick = onLoginClick
     )
 }
 

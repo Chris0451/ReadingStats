@@ -20,7 +20,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun RegistrationScreen(
     viewModel: AuthViewModel,
-    onRegistered: () -> Unit
+    onRegistered: () -> Unit,
+    onLoginClick: () -> Unit
 ) {
     val ui by viewModel.uiState.collectAsState()
 
@@ -93,6 +94,13 @@ fun RegistrationScreen(
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text("Registrati")
+        }
+
+        TextButton(
+            onClick = onLoginClick,
+            modifier = Modifier.fillMaxWidth()
+        ){
+            Text("Hai già un account? Accedi")
         }
     }
 }
