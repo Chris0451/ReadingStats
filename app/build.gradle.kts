@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -82,4 +83,11 @@ dependencies {
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.firestore.ktx)
 
+    //Retrofit + Moshi + OkHttp logging
+    implementation(libs.squareup.retrofit2)
+    implementation(libs.squareup.retrofit2.converter.moshi)
+    implementation(libs.squareup.okhttp3.logging)
+    implementation(libs.square.moshi)
+    implementation(libs.square.moshi.kotlin)
+    ksp(libs.square.moshi.kotlin.codegen)
 }
