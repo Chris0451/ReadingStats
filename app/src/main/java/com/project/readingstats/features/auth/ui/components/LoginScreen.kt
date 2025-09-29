@@ -3,12 +3,19 @@ package com.project.readingstats.features.auth.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
+/*
+* Codice per la schermata (View) di login.
+ */
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
@@ -16,55 +23,69 @@ fun LoginScreen(
     onRegisterClick: () -> Unit
 ) {
     val state by viewModel.loginState.collectAsState()
-    if(state.success) onLoginSuccess()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(text = "Accedi", style = MaterialTheme.typography.headlineMedium)
+    LaunchedEffect(state.success) {
+        if(state.success) onLoginSuccess()
+    }
+    LaunchedEffect(state.error) {
+        state.error?.let { snackbarHostState.showSnackbar(it) }
+    }
 
-        OutlinedTextField(
-            value = state.email,
-            onValueChange = viewModel::onLoginEmailChange,
-            label = { Text("Email") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Login", style = MaterialTheme.typography.headlineMedium) })},
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ){ innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(
+                value = state.email,
+                onValueChange = viewModel::onLoginEmailChange,
+                label = { Text("Email") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = viewModel::onLoginPasswordChange,
-            label = { Text("Password") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation()
-        )
+            OutlinedTextField(
+                value = state.password,
+                onValueChange = viewModel::onLoginPasswordChange,
+                label = { Text("Password") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation()
+            )
 
-        if(state.error != null){
-            Text(state.error!!, color = MaterialTheme.colorScheme.error)
-        }
-
-        Button(
-            onClick = viewModel::submitLogin,
-            enabled = state.canSubmit && !state.isSubmitting,
-            modifier = Modifier.fillMaxWidth(),
-        ){
-            if(state.isSubmitting) {
-                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(8.dp))
-                Spacer(Modifier.width(8.dp))
+            Button(
+                onClick = viewModel::submitLogin,
+                enabled = state.canSubmit && !state.isSubmitting,
+                modifier = Modifier.fillMaxWidth(),
+            ){
+                if(state.isSubmitting) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier
+                            .size(8.dp)
+                            .padding(end = 8.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text("Accedi")
             }
-            Text("Accedi")
-        }
 
-        TextButton(
-            onClick = onRegisterClick,
-            modifier = Modifier.fillMaxWidth()
-        ){
-            Text("Non hai un account? Registrati")
+            TextButton(
+                onClick = onRegisterClick,
+                modifier = Modifier.fillMaxWidth()
+            ){
+                Text("Non hai un account? Registrati")
+            }
         }
     }
+
+
 }
