@@ -112,7 +112,6 @@ class AuthViewModel @Inject constructor(
                         }
                     _uiState.value = _uiState.value.copy(isSubmitting = false, error = human.trim())
                 }
-
             }
         }
     }
