@@ -90,4 +90,8 @@ dependencies {
     implementation(libs.square.moshi)
     implementation(libs.square.moshi.kotlin)
     ksp(libs.square.moshi.kotlin.codegen)
+
+    //Icons
+    implementation(libs.androidx.material.icons.core)
+    implementation(libs.androidx.material.icons.extended)
 }
