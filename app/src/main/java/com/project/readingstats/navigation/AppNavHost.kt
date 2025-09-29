@@ -1,36 +1,48 @@
 package com.project.readingstats.navigation
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.project.readingstats.features.auth.ui.components.AuthViewModel
-import com.project.readingstats.features.auth.ui.components.LoginScreen
-import com.project.readingstats.features.auth.ui.components.RegistrationScreen
+import com.project.readingstats.core.ui.components.AppScaffold
+import com.project.readingstats.core.ui.components.BottomDest
+import com.project.readingstats.core.ui.components.NavBarComponent
+import com.project.readingstats.features.home.ui.components.HomeScreen
+import com.project.readingstats.features.catalog.ui.components.CatalogScreen
+import com.project.readingstats.features.profile.ui.components.ProfileScreen
+import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
 
 @Composable
 fun AppNavHost(
     modifier: Modifier = Modifier,
-    start: Screen = Screen.Register
+    start: Screen = Screen.Login,
+    isAuthenticated: Boolean
 ) {
     val navController = rememberNavController()
 
+    LaunchedEffect(isAuthenticated) {
+        if(isAuthenticated){
+            navController.navigate(Screen.Main.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
-        startDestination = start.route,
+        startDestination = if (isAuthenticated) Screen.Main.route else start.route,
         modifier = modifier
     ) {
+        // ---- GRAFO AUTH ----
         composable(Screen.Login.route) {
             LoginRoute(
                 onLoginSuccess = {
-                    navController.navigate(Screen.Home.route) {
+                    navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -45,7 +57,7 @@ fun AppNavHost(
         composable(Screen.Register.route) {
             RegistrationRoute(
                 onRegistered = {
-                    navController.navigate(Screen.Home.route) {
+                    navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Register.route) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -58,60 +70,35 @@ fun AppNavHost(
                 }
             )
         }
-        composable(Screen.Home.route) {
-            HomeScreen(onLogout = {
+        // ---- GRAFO MAIN (AppScaffold + NavBar + Tab NavHost) ----
+        composable(Screen.Main.route) {
+            val tabsNavController = rememberNavController()
+
+            val onLogout: () -> Unit = {
                 FirebaseAuth.getInstance().signOut()
                 navController.navigate(Screen.Login.route) {
-                    popUpTo(0)
+                    popUpTo(Screen.Main.route) { inclusive = true }
+                    launchSingleTop = true
                 }
-            })
-        }
+            }
 
-    }
+            AppScaffold(
+                bottomBar = { NavBarComponent(navController = tabsNavController) }
+            ) { innerPadding ->
+                NavHost(
+                    navController = tabsNavController,
+                    startDestination = Screen.Home.route,
+                    modifier = Modifier.padding(innerPadding)
+                ) {
+                    composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
+                    composable(BottomDest.Catalog.route) { CatalogScreen(onLogout = onLogout) }
+                    composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
+                    composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
+                }
 
-}
-
-@Composable
-fun LoginRoute(
-    viewModel: AuthViewModel = hiltViewModel(),
-    onLoginSuccess: () -> Unit,
-    onRegisterClick: () -> Unit
-) {
-    LoginScreen(
-        viewModel = viewModel,
-        onLoginSuccess = onLoginSuccess,
-        onRegisterClick = onRegisterClick
-    )
-}
-
-@Composable
-fun RegistrationRoute(
-    onRegistered: () -> Unit,
-    onLoginClick: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
-) {
-    RegistrationScreen(
-        viewModel = viewModel,
-        onRegistered = onRegistered,
-        onLoginClick = onLoginClick
-    )
-}
-
-@Composable
-private fun HomeScreen(onLogout: () -> Unit){
-    Box(
-        Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ){
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(24.dp)
-        ){
-            Text(text = "Home Screen")
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(onClick = onLogout) {
-                Text(text = "Logout")
             }
         }
+
+
     }
 }

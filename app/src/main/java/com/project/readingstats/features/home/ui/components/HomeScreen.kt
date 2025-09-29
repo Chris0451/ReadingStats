@@ -1,4 +1,4 @@
-package com.project.readingstats.features.shelves.ui.components
+package com.project.readingstats.features.home.ui.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ShelvesScreen(onLogout: () -> Unit){
+fun HomeScreen(onLogout: () -> Unit){
     Box(
         Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -23,7 +23,7 @@ fun ShelvesScreen(onLogout: () -> Unit){
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(24.dp)
         ){
-            Text(text = "Shelves Screen")
+            Text(text = "Home Screen")
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = onLogout) {
                 Text(text = "Logout")
