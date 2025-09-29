@@ -6,6 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.navigation.AppNavHost
 import com.project.readingstats.navigation.Screen
 import dagger.hilt.android.AndroidEntryPoint
@@ -17,8 +21,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MaterialTheme{
+                val isAuthenticated by remember {
+                    mutableStateOf(FirebaseAuth.getInstance().currentUser != null)
+                }
                 Surface{
-                    AppNavHost(start = Screen.Login)
+                    AppNavHost(
+                        start = Screen.Login,
+                        isAuthenticated = isAuthenticated
+                    )
                 }
             }
         }
