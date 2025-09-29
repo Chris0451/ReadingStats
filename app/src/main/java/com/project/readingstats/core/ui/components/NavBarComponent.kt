@@ -14,7 +14,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 sealed class BottomDest(val route: String, val label: String, val icon: ImageVector){
-    data object Books   : BottomDest("books", "Lista libri personale", Icons.AutoMirrored.Outlined.MenuBook)
+    data object Books   : BottomDest("books", "Scaffale", Icons.AutoMirrored.Outlined.MenuBook)
     data object Catalog : BottomDest("catalog", "Catalogo libri", Icons.Outlined.Explore)
     data object Home    : BottomDest("home", "Home", Icons.Outlined.Home)
     data object Profile : BottomDest("profile", "Profilo", Icons.Outlined.Person)
