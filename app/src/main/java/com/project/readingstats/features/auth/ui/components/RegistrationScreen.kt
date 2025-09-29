@@ -91,7 +91,7 @@ fun RegistrationScreen(
             )
 
             Button(
-                onClick = viewModel::submit,
+                onClick = viewModel::submitRegister,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = state.canSubmit && !state.isSubmitting
             ) {

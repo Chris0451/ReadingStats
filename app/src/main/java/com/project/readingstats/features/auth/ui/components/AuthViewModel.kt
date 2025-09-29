@@ -90,7 +90,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun submit() {
+    fun submitRegister() {
         val state = _uiState.value
         if(!state.canSubmit || state.isSubmitting) return
         viewModelScope.launch {
@@ -149,9 +149,8 @@ class AuthViewModel @Inject constructor(
                         "CONFIGURATION_NOT_FOUND" -> "Configurazione Firebase non valida."
                         else -> "Auth error: ${result.code}"
                     }
-                    _loginState.value = _loginState.value.copy(isSubmitting = false, error = msg)
+                    _loginState.value = _loginState.value.copy(isSubmitting = false, error = msg.trim())
                 }
-
             }
         }
     }
