@@ -10,9 +10,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.project.readingstats" />
-                  <option name="mobileSdkAppId" value="1:73055228954:android:1ddbb746721883687b2da3" />
-                  <option name="projectId" value="reading-stats-569de" />
-                  <option name="projectNumber" value="73055228954" />
+                  <option name="mobileSdkAppId" value="1:177465263975:android:6ddc548e6fa19d4a5751c2" />
+                  <option name="projectId" value="readingstats-55787" />
+                  <option name="projectNumber" value="177465263975" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
