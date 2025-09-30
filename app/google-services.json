@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "73055228954",
-    "project_id": "reading-stats-569de",
-    "storage_bucket": "reading-stats-569de.firebasestorage.app"
+    "project_number": "177465263975",
+    "project_id": "readingstats-55787",
+    "storage_bucket": "readingstats-55787.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:73055228954:android:1ddbb746721883687b2da3",
+        "mobilesdk_app_id": "1:177465263975:android:6ddc548e6fa19d4a5751c2",
         "android_client_info": {
           "package_name": "com.project.readingstats"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAItzzyErO20hyqw_YBzkcJoFIkWx91Olg"
+          "current_key": "AIzaSyDJH4e1zhbvctDgTYT7mb5JbfYePtBOPT0"
         }
       ],
       "services": {
