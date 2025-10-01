@@ -16,11 +16,18 @@ import com.project.readingstats.features.catalog.ui.components.CatalogScreen
 import com.project.readingstats.features.profile.ui.components.ProfileScreen
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
 
+/*
+*
+* NavHost code for navigation through screens
+* Login and register screens are handled in LoginRoute and RegistrationRoute, implemented in navigation.Routes.kt
+* Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost
+ */
+
 @Composable
 fun AppNavHost(
     modifier: Modifier = Modifier,
-    start: Screen = Screen.Login,
-    isAuthenticated: Boolean
+    start: Screen = Screen.Login, //Login screen by default if user not logged in
+    isAuthenticated: Boolean //Check if user is logged in (managed in MainActivity)
 ) {
     val navController = rememberNavController()
 
@@ -39,46 +46,46 @@ fun AppNavHost(
         modifier = modifier
     ) {
         // ---- GRAFO AUTH ----
-        composable(Screen.Login.route) {
+        composable(Screen.Login.route) { //Login screen route
             LoginRoute(
-                onLoginSuccess = {
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                        launchSingleTop = true
+                onLoginSuccess = { //Login successful
+                    navController.navigate(Screen.Main.route) { //Destination call to Main Screen after login successful
+                        popUpTo(Screen.Login.route) { inclusive = true } //Remove login screen after login successful
+                        launchSingleTop = true //No main duplication in order to avoid multiple instances of Main screen
                     }
                 },
-                onRegisterClick = {
-                    navController.navigate(Screen.Register.route){
-                        launchSingleTop = true
+                onRegisterClick = { //Register button clicked
+                    navController.navigate(Screen.Register.route){ //Destination call to Register Screen from Login Screen
+                        launchSingleTop = true //Does not return to registration screen if users come back after multiple clicks
                     }
                 }
             )
         }
-        composable(Screen.Register.route) {
+        composable(Screen.Register.route) { //Register screen route
             RegistrationRoute(
-                onRegistered = {
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Register.route) { inclusive = true }
-                        launchSingleTop = true
+                onRegistered = { //Registration successful
+                    navController.navigate(Screen.Main.route) { //Destination call to Main Screen after registration successful
+                        popUpTo(Screen.Register.route) { inclusive = true } //Remove registration screen after registration successful
+                        launchSingleTop = true //No Main duplication in order to avoid multiple instances of Main screen
                     }
                 },
-                onLoginClick = {
+                onLoginClick = { //Login button clicked
                     navController.popBackStack()
                     navController.navigate(Screen.Login.route){
-                        launchSingleTop = true
+                        launchSingleTop = true //Does not return to login screen if users come back after multiple clicks
                     }
                 }
             )
         }
         // ---- GRAFO MAIN (AppScaffold + NavBar + Tab NavHost) ----
-        composable(Screen.Main.route) {
+        composable(Screen.Main.route) { //Main screen route
             val tabsNavController = rememberNavController()
 
-            val onLogout: () -> Unit = {
-                FirebaseAuth.getInstance().signOut()
-                navController.navigate(Screen.Login.route) {
-                    popUpTo(Screen.Main.route) { inclusive = true }
-                    launchSingleTop = true
+            val onLogout: () -> Unit = { //Logout button function
+                FirebaseAuth.getInstance().signOut() //Logout from Firebase
+                navController.navigate(Screen.Login.route) { //Destination call to Login Screen after logout
+                    popUpTo(Screen.Main.route) { inclusive = true } //Remove Main screen after logout
+                    launchSingleTop = true //No Login duplication in order to avoid multiple instances of Login screen
                 }
             }
 
@@ -87,18 +94,16 @@ fun AppNavHost(
             ) { innerPadding ->
                 NavHost(
                     navController = tabsNavController,
-                    startDestination = Screen.Home.route,
+                    startDestination = BottomDest.Home.route,
                     modifier = Modifier.padding(innerPadding)
                 ) {
+                    // ---- GRAPH TAB NAVHOST ----
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
                     composable(BottomDest.Catalog.route) { CatalogScreen(onLogout = onLogout) }
                     composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
                     composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
                 }
-
             }
         }
-
-
     }
 }

@@ -12,7 +12,6 @@ sealed interface Screen {
     data object Login : Screen { override val route = "login"}
     data object Register : Screen { override val route = "register"}
     data object Main : Screen { override val route = "main"}
-    data object Home : Screen { override val route = "home"}
 
     data object Profile : Screen {
         private const val ARG_USER_ID = "userId"

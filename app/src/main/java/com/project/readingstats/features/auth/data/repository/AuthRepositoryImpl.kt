@@ -1,8 +1,8 @@
 package com.project.readingstats.features.auth.data.repository
 
 import com.google.firebase.FirebaseNetworkException
-import com.google.firebase.auth.FirebaseAuthException
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.FirebaseTooManyRequestsException
+import com.google.firebase.auth.*
 import com.project.readingstats.features.auth.data.source.FirebaseAuthDataSource
 import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
 import com.project.readingstats.features.auth.domain.repository.AuthRepository
@@ -55,7 +55,6 @@ class AuthRepositoryImpl(
         } catch (e: FirebaseAuthUserCollisionException) {
             RegisterResult.Error("EMAIL_IN_USE", e.message)
         }catch (e: FirebaseAuthException) {
-            // <-- Qui hai il codice preciso (es. CONFIGURATION_NOT_FOUND)
             RegisterResult.Error(e.errorCode ?: "AUTH_ERROR", e.message)
         }
         catch (e: IllegalStateException) {
@@ -83,22 +82,54 @@ class AuthRepositoryImpl(
                 return@withContext LoginResult.Error("USER_NOT_FOUND", "Utente non trovato")
             }
             LoginResult.Success
-        } catch (e: FirebaseAuthException) {
-            val human = when (e.errorCode) {
-                "ERROR_INVALID_EMAIL"      -> "Email non valida."
-                "ERROR_USER_NOT_FOUND"     -> "Utente inesistente."
-                "ERROR_WRONG_PASSWORD"     -> "Password errata."
-                "ERROR_USER_DISABLED"      -> "Utente disabilitato."
-                "CONFIGURATION_NOT_FOUND"  -> "Configurazione Firebase non valida."
-                else -> null
+        }
+        catch (e: FirebaseAuthInvalidUserException) {
+            // Utente inesistente o disabilitato
+            val code = when (e.errorCode) {
+                "USER_DISABLED", "user-disabled" -> "USER_DISABLED"
+                else                                   -> "USER_NOT_FOUND"
             }
-            LoginResult.Error(e.errorCode ?: "AUTH_ERROR", human ?: e.message)
-        } catch (e: FirebaseNetworkException) {
-            LoginResult.Error("NETWORK", "Problema di rete, riprova")
-        } catch (e: Exception) {
-            val fe = e as? FirebaseAuthException
-            val code = fe?.errorCode ?: e::class.qualifiedName.orEmpty()
-            LoginResult.Error(code.ifBlank { "GENERIC" }, e.message ?: e.toString())
+            LoginResult.Error(code, e.message)
+        }
+        catch (e: FirebaseAuthInvalidCredentialsException) {
+            // Email malformata o password errata
+            val code = when (e.errorCode) {
+                "INVALID_EMAIL", "invalid-email" -> "INVALID_EMAIL"
+                "WRONG_PASSWORD", "wrong-password" -> "WRONG_PASSWORD"
+                else -> "INVALID_CREDENTIALS"
+            }
+            LoginResult.Error(code, e.message)
+        }
+        // --- ALTRE NOTE ---
+        catch (e: FirebaseAuthUserCollisionException) {
+            LoginResult.Error("EMAIL_IN_USE", e.message) // in login capita raramente, ma ok
+        }
+        catch (e: FirebaseTooManyRequestsException) {
+            LoginResult.Error("TOO_MANY_REQUESTS", e.message)
+        }
+        catch (e: FirebaseNetworkException) {
+            LoginResult.Error("NETWORK", e.message)
+        }
+        // --- GENERICA DI AUTH ---
+        catch (e: FirebaseAuthException) {
+            // Normalizza alcuni codici comuni
+            val mapped = when (e.errorCode) {
+                "INVALID_LOGIN_CREDENTIALS", "ERROR_INVALID_CREDENTIALS" -> "INVALID_CREDENTIALS" // ← aggiunta
+                "ERROR_INVALID_EMAIL", "invalid-email"                   -> "INVALID_EMAIL"
+                "ERROR_WRONG_PASSWORD", "wrong-password"                 -> "WRONG_PASSWORD"
+                "ERROR_USER_DISABLED", "user-disabled"                   -> "USER_DISABLED"
+                "ERROR_USER_NOT_FOUND", "user-not-found", "EMAIL_NOT_FOUND" -> "USER_NOT_FOUND"
+                else -> e.errorCode.ifBlank { "AUTH_ERROR" }
+            }
+            return@withContext LoginResult.Error(mapped, e.message ?: "Errore di autenticazione")
+        }
+        // --- ULTIMA ANCORA ---
+        catch (e: Exception) {
+            val msg = e.message ?: e.toString()
+            if (msg.contains("INVALID_LOGIN_CREDENTIALS", ignoreCase = true)) {
+                return@withContext LoginResult.Error("INVALID_CREDENTIALS", msg)
+            }
+            return@withContext LoginResult.Error("GENERIC", msg)
         }
     }
 }
