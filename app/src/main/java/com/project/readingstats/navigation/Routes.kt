@@ -2,7 +2,7 @@ package com.project.readingstats.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.project.readingstats.features.auth.ui.components.AuthViewModel
+import com.project.readingstats.features.auth.AuthViewModel
 import com.project.readingstats.features.auth.ui.components.LoginScreen
 import com.project.readingstats.features.auth.ui.components.RegistrationScreen
 
@@ -12,6 +12,10 @@ sealed interface Screen {
     data object Login : Screen { override val route = "login"}
     data object Register : Screen { override val route = "register"}
     data object Main : Screen { override val route = "main"}
+
+    data object Catalog : Screen { override val route = "catalog"}
+
+    data object BookDetail : Screen { override val route = "bookDetail"}
 
     data object Profile : Screen {
         private const val ARG_USER_ID = "userId"

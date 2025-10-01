@@ -11,6 +11,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.core.ui.components.AppScaffold
 import com.project.readingstats.core.ui.components.BottomDest
 import com.project.readingstats.core.ui.components.NavBarComponent
+import com.project.readingstats.features.bookdetail.ui.components.BookDetailScreen
+import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen
 import com.project.readingstats.features.profile.ui.components.ProfileScreen
@@ -77,6 +79,20 @@ fun AppNavHost(
                 }
             )
         }
+
+        composable(Screen.Catalog.route) {
+            CatalogScreen(onOpenBook = { book ->
+                navController.currentBackStackEntry?.savedStateHandle?.set("book", book)
+                navController.navigate(Screen.BookDetail.route)
+            })
+        }
+        composable(Screen.BookDetail.route) {
+            val book = navController.previousBackStackEntry?.savedStateHandle?.get<Book>("book")
+            if (book != null) {
+                BookDetailScreen(book = book, onBack = { navController.popBackStack() })
+            }
+        }
+
         // ---- GRAFO MAIN (AppScaffold + NavBar + Tab NavHost) ----
         composable(Screen.Main.route) { //Main screen route
             val tabsNavController = rememberNavController()
@@ -88,7 +104,6 @@ fun AppNavHost(
                     launchSingleTop = true //No Login duplication in order to avoid multiple instances of Login screen
                 }
             }
-
             AppScaffold(
                 bottomBar = { NavBarComponent(navController = tabsNavController) }
             ) { innerPadding ->
@@ -99,7 +114,7 @@ fun AppNavHost(
                 ) {
                     // ---- GRAPH TAB NAVHOST ----
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
-                    composable(BottomDest.Catalog.route) { CatalogScreen(onLogout = onLogout) }
+                    composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = {}) }
                     composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
                     composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
                 }
