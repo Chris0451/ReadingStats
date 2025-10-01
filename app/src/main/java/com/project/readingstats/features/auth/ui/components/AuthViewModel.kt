@@ -90,7 +90,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun submit() {
+    fun submitRegister() {
         val state = _uiState.value
         if(!state.canSubmit || state.isSubmitting) return
         viewModelScope.launch {
@@ -112,7 +112,6 @@ class AuthViewModel @Inject constructor(
                         }
                     _uiState.value = _uiState.value.copy(isSubmitting = false, error = human.trim())
                 }
-
             }
         }
     }
@@ -140,18 +139,19 @@ class AuthViewModel @Inject constructor(
                 }
                 is LoginResult.Error -> {
                     val msg = when (result.code) {
-                        "ERROR_INVALID_EMAIL"     -> "Email non valida."
-                        "ERROR_USER_NOT_FOUND"    -> "Utente inesistente."
-                        "ERROR_WRONG_PASSWORD"    -> "Password errata."
-                        "ERROR_USER_DISABLED"     -> "Utente disabilitato."
+                        "INVALID_EMAIL"     -> "Email non valida."
+                        "USER_NOT_FOUND",
+                        "INVALID_CREDENTIALS",
+                        "INVALID_LOGIN_CREDENTIALS",
+                        "WRONG_PASSWORD"    -> "Email o Password non corretti."
+                        "USER_DISABLED"     -> "Utente disabilitato."
                         "USER_PROFILE_MISSING"    -> "Profilo utente mancante. Completa la registrazione."
                         "NETWORK"                 -> "Problema di rete, riprova."
                         "CONFIGURATION_NOT_FOUND" -> "Configurazione Firebase non valida."
-                        else -> "Auth error: ${result.code}"
+                        else -> result.message ?: "Auth error: ${result.code}"
                     }
-                    _loginState.value = _loginState.value.copy(isSubmitting = false, error = msg)
+                    _loginState.value = _loginState.value.copy(isSubmitting = false, error = msg.trim())
                 }
-
             }
         }
     }

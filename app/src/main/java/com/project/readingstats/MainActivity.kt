@@ -21,9 +21,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MaterialTheme{
+                /*
+                * Check if user is authenticated (logged in)
+                * */
                 val isAuthenticated by remember {
                     mutableStateOf(FirebaseAuth.getInstance().currentUser != null)
                 }
+                /*
+                * NavHost composable (AppNavHost) for navigation through screens
+                * It starts from Login screen (Screen.Login) if user is not authenticated (isAuthenticated == false)
+                */
                 Surface{
                     AppNavHost(
                         start = Screen.Login,
