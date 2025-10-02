@@ -1,6 +1,7 @@
 package com.project.readingstats.features.catalog.data.repository
 
 import com.project.readingstats.features.catalog.data.GoogleBooksApi
+import com.project.readingstats.features.catalog.data.dto.VolumeInfo
 import com.project.readingstats.features.catalog.data.dto.VolumeItem
 import com.project.readingstats.features.catalog.domain.repository.CatalogRepository
 import com.project.readingstats.features.catalog.domain.model.Book
@@ -11,6 +12,24 @@ import javax.inject.Singleton
 class CatalogRepositoryImpl @Inject constructor(
     private val api: GoogleBooksApi
 ): CatalogRepository {
+
+    private fun VolumeItem.toDomain() = Book(
+        id = id,
+        title = volumeInfo?.title.orEmpty(),
+        authors = volumeInfo?.authors ?: emptyList(),
+        categories = volumeInfo?.categories ?: emptyList(),
+        publishedDate = volumeInfo?.publishedDate,
+        pageCount = volumeInfo?.pageCount,
+        description = volumeInfo?.description,
+        thumbnail = bestThumbnailHttps(volumeInfo),
+    )
+
+    private fun bestThumbnailHttps(info: VolumeInfo?): String?{
+        val raw = info?.imageLinks?.thumbnail
+            ?: info?.imageLinks?.smallThumbnail
+            ?: return null
+        return raw.replace("http://", "https://")
+    }
 
     private val itToEn = mapOf(
         "Avventura" to "Adventure",
@@ -36,7 +55,7 @@ class CatalogRepositoryImpl @Inject constructor(
             orderBy = "relevance",
             projection = "lite"
         )
-        return resp.items.map(::toDomain)
+        return resp.items.map{it.toDomain()}
     }
 
     override suspend fun byCategory(category: String, page: Int, pageSize: Int): List<Book> {
@@ -71,19 +90,9 @@ class CatalogRepositoryImpl @Inject constructor(
             ).items
         }
 
-        return items.map(::toDomain)
+        android.util.Log.d("CatalogRepository", "byCategory: $category items: ${items.size}")
+        return items.map { it.toDomain() }
     }
-
-    private fun toDomain(it: VolumeItem) = Book(
-        id = it.id,
-        title = it.volumeInfo?.title.orEmpty(),
-        authors = it.volumeInfo?.authors ?: emptyList(),
-        categories = it.volumeInfo?.categories ?: emptyList(),
-        publishedDate = it.volumeInfo?.publishedDate,
-        pageCount = it.volumeInfo?.pageCount,
-        description = it.volumeInfo?.description,
-        thumbnail = it.volumeInfo?.imageLinks?.thumbnail,
-    )
 
     private fun normalizeQuery(raw: String): String{
         val t = raw.trim()

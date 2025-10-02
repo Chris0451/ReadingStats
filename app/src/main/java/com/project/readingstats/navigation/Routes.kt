@@ -5,6 +5,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.project.readingstats.features.auth.AuthViewModel
 import com.project.readingstats.features.auth.ui.components.LoginScreen
 import com.project.readingstats.features.auth.ui.components.RegistrationScreen
+import com.project.readingstats.features.bookdetail.ui.components.BookDetailScreen
+import com.project.readingstats.features.catalog.domain.model.Book
+import com.project.readingstats.features.catalog.ui.components.CatalogScreen
 
 sealed interface Screen {
     val route: String
@@ -12,9 +15,7 @@ sealed interface Screen {
     data object Login : Screen { override val route = "login"}
     data object Register : Screen { override val route = "register"}
     data object Main : Screen { override val route = "main"}
-
     data object Catalog : Screen { override val route = "catalog"}
-
     data object BookDetail : Screen { override val route = "bookDetail"}
 
     data object Profile : Screen {
@@ -22,7 +23,6 @@ sealed interface Screen {
         override val route = "profile/{$ARG_USER_ID}"
         fun createRoute(userId: String) = "profile/$userId"
     }
-
 }
 
 @Composable
@@ -48,5 +48,25 @@ fun RegistrationRoute(
         viewModel = viewModel,
         onRegistered = onRegistered,
         onLoginClick = onLoginClick
+    )
+}
+
+@Composable
+fun BookDetailScreenRoute(
+    book: Book,
+    onBack: () -> Unit
+){
+    BookDetailScreen(
+        book = book,
+        onBack = onBack
+    )
+}
+
+@Composable
+fun CatalogScreenRoute(
+    onOpenBook: (Book) -> Unit
+){
+    CatalogScreen(
+        onOpenBook = onOpenBook
     )
 }

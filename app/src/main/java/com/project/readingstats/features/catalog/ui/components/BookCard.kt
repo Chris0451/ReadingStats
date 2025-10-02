@@ -1,5 +1,6 @@
 package com.project.readingstats.features.catalog.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,11 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.project.readingstats.features.catalog.domain.model.Book
 import coil.compose.AsyncImage
+import coil.request.ErrorResult
+import coil.request.ImageRequest
+import com.project.readingstats.R
 
 @Composable
 fun BookCard(
@@ -36,12 +42,19 @@ fun BookCard(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AsyncImage(
-            model = book.thumbnail,
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(book.thumbnail)
+                .crossfade(true)
+                .listener(
+                    onError = {_, t-> Log.e("BookCard", "Error loading image for ${book.title}", t.throwable)}
+                )
+                .build(),
             contentDescription = book.title,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(width = 110.dp, height = 170.dp)
                 .clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop
+            placeholder = painterResource(R.drawable.ic_book)
         )
         Spacer(Modifier.height(6.dp))
         Text(

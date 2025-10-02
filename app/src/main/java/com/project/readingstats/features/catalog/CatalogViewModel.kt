@@ -33,7 +33,13 @@ class CatalogViewModel @Inject constructor(
             CategoryRowState(category = "Fantasy"),
             CategoryRowState(category = "Horror"),
             CategoryRowState(category = "Romance"),
-            CategoryRowState(category = "Thrillers")
+            CategoryRowState(category = "Thrillers"),
+            CategoryRowState(category = "Science Fiction"),
+            CategoryRowState(category = "Adventure"),
+            CategoryRowState(category = "Business & Economics"),
+            CategoryRowState(category = "History"),
+            CategoryRowState(category = "Detective and mystery stories"),
+            CategoryRowState(category = "Juvenile Fiction")
         )
     )
 

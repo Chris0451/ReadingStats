@@ -80,16 +80,20 @@ fun AppNavHost(
             )
         }
 
-        composable(Screen.Catalog.route) {
-            CatalogScreen(onOpenBook = { book ->
+        /*composable(Screen.Catalog.route) {
+            CatalogScreenRoute(
+                onOpenBook = { book ->
                 navController.currentBackStackEntry?.savedStateHandle?.set("book", book)
                 navController.navigate(Screen.BookDetail.route)
             })
-        }
+        }*/
         composable(Screen.BookDetail.route) {
             val book = navController.previousBackStackEntry?.savedStateHandle?.get<Book>("book")
             if (book != null) {
-                BookDetailScreen(book = book, onBack = { navController.popBackStack() })
+                BookDetailScreenRoute(
+                    book = book,
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
 
@@ -104,6 +108,12 @@ fun AppNavHost(
                     launchSingleTop = true //No Login duplication in order to avoid multiple instances of Login screen
                 }
             }
+
+            val onOpenBook: (Book) -> Unit = { book ->
+                navController.currentBackStackEntry?.savedStateHandle?.set("book", book)
+                navController.navigate(Screen.BookDetail.route)
+            }
+
             AppScaffold(
                 bottomBar = { NavBarComponent(navController = tabsNavController) }
             ) { innerPadding ->
@@ -114,7 +124,7 @@ fun AppNavHost(
                 ) {
                     // ---- GRAPH TAB NAVHOST ----
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
-                    composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = {}) }
+                    composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) } //RICHIAMO FUNZIONE PER APERTURA LIBRO
                     composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
                     composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
                 }
