@@ -40,6 +40,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.project.readingstats.R
 import com.project.readingstats.features.catalog.domain.model.Book
+import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,18 +124,11 @@ fun BookDetailScreen(
                     }
                     if (!book.publishedDate.isNullOrBlank()) {
                         Text(
-                            text = book.publishedDate ?: "",
+                            text = "Pubblicazione: "+book.publishedDate,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    if (categoriesText.isNotBlank()) {
-                        Text(
-                            text = categoriesText,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    PageCountText(book.pageCount)
                 }
             }
 
@@ -169,4 +163,16 @@ private fun ExpandableText(
             Text(if (expanded) "Mostra meno" else "Mostra tutto")
         }
     }
+}
+
+@Composable
+fun PageCountText(pageCount: Int?) {
+    val count = pageCount?.takeIf { it >= 1 } ?: return
+    val nf = NumberFormat.getIntegerInstance()
+    Text(
+        text = "${nf.format(count)} pagine",
+        style = MaterialTheme.typography.bodySmall,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
 }

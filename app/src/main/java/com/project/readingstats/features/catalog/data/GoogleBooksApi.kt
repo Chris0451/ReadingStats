@@ -13,6 +13,7 @@ interface GoogleBooksApi {
         @Query("orderBy") orderBy: String? = "relevance",
         @Query("projection") projection: String? = "lite",
         @Query("langRestrict") langRestrict: String? = null,
-        @Query("printType") printType: String? = "books"
+        @Query("printType") printType: String? = "books",
+        @Query("fields") fields: String? = null
     ) : VolumeResponse
 }

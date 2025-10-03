@@ -53,7 +53,7 @@ class CatalogRepositoryImpl @Inject constructor(
             startIndex = page*pageSize,
             maxResults = pageSize,
             orderBy = "relevance",
-            projection = "lite"
+            projection = "full"
         )
         return resp.items.map{it.toDomain()}
     }
@@ -67,7 +67,7 @@ class CatalogRepositoryImpl @Inject constructor(
             startIndex = page*pageSize,
             maxResults = pageSize,
             orderBy = "relevance",
-            projection = "lite"
+            projection = "full"
         ).items
 
         if(items.isEmpty() && enSubject != null){
@@ -76,7 +76,7 @@ class CatalogRepositoryImpl @Inject constructor(
                 startIndex = page*pageSize,
                 maxResults = pageSize,
                 orderBy = "relevance",
-                projection = "lite"
+                projection = "full"
             ).items
         }
 
@@ -86,7 +86,7 @@ class CatalogRepositoryImpl @Inject constructor(
                 startIndex = page*pageSize,
                 maxResults = pageSize,
                 orderBy = "relevance",
-                projection = "lite"
+                projection = "full"
             ).items
         }
 
