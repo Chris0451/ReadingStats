@@ -2,7 +2,9 @@ package com.project.readingstats.features.catalog
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.project.readingstats.features.auth.domain.usecase.GetCurrentUidUseCase
 import com.project.readingstats.features.catalog.domain.model.Book
+import com.project.readingstats.features.catalog.domain.repository.UserPreferencesRepository
 import com.project.readingstats.features.catalog.domain.usecase.GetCategoryFeedUseCase
 import com.project.readingstats.features.catalog.domain.usecase.SearchBookUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,9 +17,26 @@ import javax.inject.Inject
 @HiltViewModel
 class CatalogViewModel @Inject constructor(
     private val searchBook: SearchBookUseCase,
-    private val getCategoryFeed: GetCategoryFeedUseCase
+    private val getCategoryFeed: GetCategoryFeedUseCase,
+    private val userPreferences: UserPreferencesRepository,
+    private val getCurrentUid: GetCurrentUidUseCase
 ): ViewModel() {
 
+    companion object{
+        val DEFAULT_CATEGORIES = listOf(
+            "Fantasy",
+            "Horror",
+            "Romance",
+            "Thrillers",
+            "Science Fiction",
+            "Adventure",
+            "Business & Economics",
+            "History",
+            "Detective and mystery stories",
+            "Juvenile Fiction"
+        )
+    }
+    //Data class for each category row state, including its books, loading state and error message
     data class CategoryRowState(
         val category: String,
         val books: List<Book> = emptyList(),
@@ -25,29 +44,43 @@ class CatalogViewModel @Inject constructor(
         val error: String? = null
     )
 
+    //Main UI state, including search query, search result and list of category rows (to add the category filter logic in the future)
     data class UiState(
         val query: String = "",
         val searching: Boolean = false,
         val searchResult: List<Book> = emptyList(),
-        val categories: List<CategoryRowState> = listOf(
-            CategoryRowState(category = "Fantasy"),
-            CategoryRowState(category = "Horror"),
-            CategoryRowState(category = "Romance"),
-            CategoryRowState(category = "Thrillers"),
-            CategoryRowState(category = "Science Fiction"),
-            CategoryRowState(category = "Adventure"),
-            CategoryRowState(category = "Business & Economics"),
-            CategoryRowState(category = "History"),
-            CategoryRowState(category = "Detective and mystery stories"),
-            CategoryRowState(category = "Juvenile Fiction")
-        )
+        val allCategories: List<String> = DEFAULT_CATEGORIES,
+        val categories: List<CategoryRowState> = DEFAULT_CATEGORIES.map { CategoryRowState(it) },
+        val showFilters: Boolean = false,
+        val selectedCategories: Set<String> = emptySet(),
+        val currentUid: String? = null
     )
 
     private val _uiState = MutableStateFlow(UiState())
     val state = _uiState.asStateFlow()
 
     init {
-        loadAllCategories()
+        viewModelScope.launch {
+            val uid = runCatching { getCurrentUid() }.getOrNull()
+            _uiState.update {it.copy(currentUid = uid)}
+
+            val saved = if (uid != null)
+                runCatching { userPreferences.getSelectedCategories(uid) }.getOrDefault(emptySet())
+            else emptySet()
+
+            applyFilters(saved)
+            loadAllCategories()
+        }
+    }
+
+    private fun applyFilters(selected: Set<String>){
+        val base = if (selected.isEmpty()) DEFAULT_CATEGORIES else selected.toList()
+        _uiState.update {
+            it.copy(
+                selectedCategories = selected,
+                categories = base.map { category -> CategoryRowState(category) }
+            )
+        }
     }
 
     private fun loadAllCategories(){
@@ -109,4 +142,32 @@ class CatalogViewModel @Inject constructor(
     }
 
     fun clearSearch() = _uiState.update { it.copy(query = "", searchResult = emptyList(), searching = false) }
+
+    fun openFilters() = _uiState.update{it.copy(showFilters = true)}
+    fun closeFilters() = _uiState.update{it.copy(showFilters = false)}
+
+    fun toggleCategory(category: String){
+        _uiState.update{ state ->
+            val next = state.selectedCategories.toMutableSet()
+            if(!next.add(category)) next.remove(category)
+            state.copy(selectedCategories = next)
+        }
+    }
+
+    fun clearFilters(){
+        _uiState.update{it.copy(selectedCategories = emptySet())}
+    }
+
+    fun confirmFilters(){
+        val uid = _uiState.value.currentUid ?: return
+        val selected = _uiState.value.selectedCategories
+        viewModelScope.launch{
+            if(uid!=null){
+                runCatching { userPreferences.setSelectedCategories(uid, selected) }
+            }
+            applyFilters(selected)
+            _uiState.update{it.copy(showFilters = false, selectedCategories = emptySet())}
+            loadAllCategories()
+        }
+    }
 }

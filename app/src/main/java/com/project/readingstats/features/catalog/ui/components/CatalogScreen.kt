@@ -1,26 +1,35 @@
 package com.project.readingstats.features.catalog.ui.components
 
-import android.R.attr.bottom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.project.readingstats.core.ui.components.SearchBar
@@ -49,6 +58,24 @@ fun CatalogScreen(
             onDebounceChange = {q -> vm.performLiveSearch(q)}
         )
 
+        //LISTA FILTRI CATALOGO
+        FilterBar(
+            selectedCount = state.selectedCategories.size,
+            onOpen = vm::openFilters
+        )
+
+        if(state.showFilters){
+            FiltersDialog(
+                all = state.categories.map {it.category},
+                selected = state.selectedCategories,
+                onToggle = vm::toggleCategory,
+                onClear = vm::clearFilters,
+                onConfirm = vm::confirmFilters,
+                onDismiss = vm::closeFilters
+            )
+        }
+
+        // BOOKS CATEGORIES OR BOOKS SEARCHED
         if(state.searchResult.isNotEmpty() || state.searching){
             if (state.searching){
                 Box(
@@ -85,6 +112,99 @@ fun CatalogScreen(
                         books = row.books,
                         onBookClick = onOpenBook
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterBar(
+    selectedCount: Int,
+    onOpen: () -> Unit
+){
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ){
+        Text(
+            text = if(selectedCount == 0) "Tutte le categorie"
+                else "Selezionate $selectedCount categorie",
+            style = MaterialTheme.typography.titleMedium
+        )
+        ElevatedButton(onClick = onOpen){
+            Text("Filtri")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FiltersDialog(
+    all: List<String>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
+    onClear: () -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+){
+    BasicAlertDialog(
+        onDismissRequest = onDismiss,
+    ){
+        //CONSTRUCTION OF THE DIALOG
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp
+        ) {
+            Column(
+              modifier = Modifier
+                  .padding(24.dp)
+                  .widthIn(min = 280.dp, max = 560.dp)
+            ){
+                Text(
+                    text = "Filtra per categoria",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Spacer(Modifier.padding(top=12.dp))
+
+                //CATEGORY CHECKBOX
+                all.forEach{ category ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ){
+                        Checkbox(
+                            checked = category in selected,
+                            onCheckedChange = { onToggle(category) }
+                        )
+                        Text(text=category)
+                    }
+                }
+
+                Spacer(Modifier.padding(top=16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ){
+                    TextButton(onClick = onClear){
+                        Text(text="Pulisci")
+                    }
+                    TextButton(onClick = onDismiss) {
+                        Text(text="Annulla")
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.padding(start=8.dp)
+                    ) {
+                        Text(text="Conferma", maxLines = 1, softWrap = false)
+                    }
                 }
             }
         }

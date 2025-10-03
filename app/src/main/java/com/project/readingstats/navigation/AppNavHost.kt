@@ -80,13 +80,7 @@ fun AppNavHost(
             )
         }
 
-        /*composable(Screen.Catalog.route) {
-            CatalogScreenRoute(
-                onOpenBook = { book ->
-                navController.currentBackStackEntry?.savedStateHandle?.set("book", book)
-                navController.navigate(Screen.BookDetail.route)
-            })
-        }*/
+
         composable(Screen.BookDetail.route) {
             val book = navController.previousBackStackEntry?.savedStateHandle?.get<Book>("book")
             if (book != null) {
@@ -125,7 +119,7 @@ fun AppNavHost(
                     // ---- GRAPH TAB NAVHOST ----
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
                     composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) } //RICHIAMO FUNZIONE PER APERTURA LIBRO
-                    composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
+                    composable(BottomDest.Books.route) { ShelvesScreen() }
                     composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
                 }
             }

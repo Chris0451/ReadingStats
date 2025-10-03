@@ -14,20 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ShelvesScreen(onLogout: () -> Unit){
-    Box(
-        Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ){
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(24.dp)
-        ){
-            Text(text = "Shelves Screen")
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(onClick = onLogout) {
-                Text(text = "Logout")
-            }
-        }
-    }
+fun ShelvesScreen(){
+
 }
