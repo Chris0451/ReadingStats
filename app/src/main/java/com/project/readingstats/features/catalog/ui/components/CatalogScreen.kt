@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.room.util.copy
 import com.project.readingstats.core.ui.components.SearchBar
 import com.project.readingstats.features.catalog.CatalogViewModel
 import com.project.readingstats.features.catalog.domain.model.Book
@@ -66,7 +68,7 @@ fun CatalogScreen(
 
         if(state.showFilters){
             FiltersDialog(
-                all = state.categories.map {it.category},
+                all = state.allCategories,
                 selected = state.selectedCategories,
                 onToggle = vm::toggleCategory,
                 onClear = vm::clearFilters,
@@ -162,7 +164,7 @@ private fun FiltersDialog(
             Column(
               modifier = Modifier
                   .padding(24.dp)
-                  .widthIn(min = 280.dp, max = 560.dp)
+                  .widthIn(min = 320.dp, max = 560.dp)
             ){
                 Text(
                     text = "Filtra per categoria",
@@ -201,7 +203,7 @@ private fun FiltersDialog(
                     }
                     Button(
                         onClick = onConfirm,
-                        modifier = Modifier.padding(start=8.dp)
+                        contentPadding = PaddingValues(start = 12.dp, top = 8.dp, end = 12.dp, bottom = 8.dp)
                     ) {
                         Text(text="Conferma", maxLines = 1, softWrap = false)
                     }

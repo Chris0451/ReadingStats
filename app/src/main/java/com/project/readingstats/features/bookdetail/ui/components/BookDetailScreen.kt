@@ -47,6 +47,13 @@ fun BookDetailScreen(
     book: Book,
     onBack: () -> Unit
 ){
+    val categoriesText = remember(book.categories) {
+        book.categories
+            .map{it.trim()}
+            .filter{it.isNotEmpty()}
+            .distinct()
+            .joinToString(" - ")
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -120,10 +127,12 @@ fun BookDetailScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    if (book.categories.isNotEmpty()) {
+                    if (categoriesText.isNotBlank()) {
                         Text(
-                            text = book.categories.joinToString(" • "),
-                            style = MaterialTheme.typography.labelMedium
+                            text = categoriesText,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -134,7 +143,6 @@ fun BookDetailScreen(
             // Descrizione espandibile
             ExpandableText(
                 text = book.description ?: "Nessuna descrizione disponibile.",
-                collapsedLines = 5
             )
         }
     }
@@ -143,16 +151,22 @@ fun BookDetailScreen(
 @Composable
 private fun ExpandableText(
     text: String,
-    collapsedLines: Int
+    collapsedLines: Int = 5
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var isOverflowing by remember (text, collapsedLines) { mutableStateOf(false) }
     Text(
         text = text,
         maxLines = if (expanded) Int.MAX_VALUE else collapsedLines,
         overflow = TextOverflow.Ellipsis,
-        style = MaterialTheme.typography.bodyMedium
+        style = MaterialTheme.typography.bodyMedium,
+        onTextLayout = { result ->
+            if(!expanded) isOverflowing = result.hasVisualOverflow
+        }
     )
-    TextButton(onClick = { expanded = !expanded }) {
-        Text(if (expanded) "Mostra meno" else "Mostra tutto")
+    if(isOverflowing){
+        TextButton(onClick = { expanded = !expanded }) {
+            Text(if (expanded) "Mostra meno" else "Mostra tutto")
+        }
     }
 }

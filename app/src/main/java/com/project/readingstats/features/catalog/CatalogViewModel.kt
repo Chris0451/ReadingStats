@@ -74,7 +74,7 @@ class CatalogViewModel @Inject constructor(
     }
 
     private fun applyFilters(selected: Set<String>){
-        val base = if (selected.isEmpty()) DEFAULT_CATEGORIES else selected.toList()
+        val base = if (selected.isEmpty()) _uiState.value.allCategories else selected.toList()
         _uiState.update {
             it.copy(
                 selectedCategories = selected,
@@ -162,11 +162,9 @@ class CatalogViewModel @Inject constructor(
         val uid = _uiState.value.currentUid ?: return
         val selected = _uiState.value.selectedCategories
         viewModelScope.launch{
-            if(uid!=null){
-                runCatching { userPreferences.setSelectedCategories(uid, selected) }
-            }
+            runCatching { userPreferences.setSelectedCategories(uid, selected) }
             applyFilters(selected)
-            _uiState.update{it.copy(showFilters = false, selectedCategories = emptySet())}
+            _uiState.update{it.copy(showFilters = false)}
             loadAllCategories()
         }
     }
