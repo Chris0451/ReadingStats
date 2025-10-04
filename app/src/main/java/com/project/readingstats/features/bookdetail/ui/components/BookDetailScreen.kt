@@ -1,6 +1,7 @@
 package com.project.readingstats.features.bookdetail.ui.components
 
 import android.util.Log
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,9 +16,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -31,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -48,13 +55,6 @@ fun BookDetailScreen(
     book: Book,
     onBack: () -> Unit
 ){
-    val categoriesText = remember(book.categories) {
-        book.categories
-            .map{it.trim()}
-            .filter{it.isNotEmpty()}
-            .distinct()
-            .joinToString(" - ")
-    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -129,12 +129,22 @@ fun BookDetailScreen(
                         )
                     }
                     PageCountText(book.pageCount)
+                    Row(
+                        modifier = Modifier
+                    ){
+                        BookButtonIcon(Icons.AutoMirrored.Outlined.MenuBook, {})
+                        BookButtonIcon(Icons.Outlined.AutoStories, {})
+                        BookButtonIcon(Icons.Outlined.CheckCircle, {})
+                        BookButtonIcon(Icons.Outlined.Category, {})
+                    }
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // Descrizione espandibile
+            //INSERIMENTO ICONE CLICCABILI PER AGGIUNTA LIBRO
+
+
             ExpandableText(
                 text = book.description ?: "Nessuna descrizione disponibile.",
             )
@@ -166,7 +176,7 @@ private fun ExpandableText(
 }
 
 @Composable
-fun PageCountText(pageCount: Int?) {
+private fun PageCountText(pageCount: Int?) {
     val count = pageCount?.takeIf { it >= 1 } ?: return
     val nf = NumberFormat.getIntegerInstance()
     Text(
@@ -175,4 +185,26 @@ fun PageCountText(pageCount: Int?) {
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
     )
+}
+
+@Composable
+private fun BookButtonIcon(imageVector: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    var checked by remember { mutableStateOf(false) }
+    val color by animateColorAsState(
+        if (checked) {
+            MaterialTheme.colorScheme.primary
+        } else MaterialTheme.colorScheme.onSurface,
+        label = "iconChanged"
+    )
+    IconToggleButton(
+        checked = checked,
+        modifier = modifier,
+        onCheckedChange = {checked = it}
+    ){
+        Icon(
+            imageVector = imageVector,
+            contentDescription = null,
+            tint = color
+        )
+    }
 }

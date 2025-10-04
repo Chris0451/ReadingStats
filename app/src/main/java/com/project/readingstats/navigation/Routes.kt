@@ -15,7 +15,6 @@ sealed interface Screen {
     data object Login : Screen { override val route = "login"}
     data object Register : Screen { override val route = "register"}
     data object Main : Screen { override val route = "main"}
-    data object Catalog : Screen { override val route = "catalog"}
     data object BookDetail : Screen { override val route = "bookDetail"}
 
     data object Profile : Screen {
@@ -59,14 +58,5 @@ fun BookDetailScreenRoute(
     BookDetailScreen(
         book = book,
         onBack = onBack
-    )
-}
-
-@Composable
-fun CatalogScreenRoute(
-    onOpenBook: (Book) -> Unit
-){
-    CatalogScreen(
-        onOpenBook = onOpenBook
     )
 }

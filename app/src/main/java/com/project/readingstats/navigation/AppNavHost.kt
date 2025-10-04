@@ -23,6 +23,7 @@ import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
 * NavHost code for navigation through screens
 * Login and register screens are handled in LoginRoute and RegistrationRoute, implemented in navigation.Routes.kt
 * Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost
+*
  */
 
 @Composable

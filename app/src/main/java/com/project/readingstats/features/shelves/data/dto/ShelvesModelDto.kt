@@ -1,4 +1,4 @@
-package com.project.readingstats.features.shelves.data
+package com.project.readingstats.features.shelves.data.dto
 
 import com.project.readingstats.features.catalog.domain.model.Book
 

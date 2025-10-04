@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -37,6 +39,7 @@ import androidx.room.util.copy
 import com.project.readingstats.core.ui.components.SearchBar
 import com.project.readingstats.features.catalog.CatalogViewModel
 import com.project.readingstats.features.catalog.domain.model.Book
+import com.project.readingstats.core.ui.components.VerticalScrollBar
 
 @Composable
 fun CatalogScreen(
@@ -102,6 +105,7 @@ fun CatalogScreen(
                         )
                     }
                 }
+
             }
         } else {
             LazyColumn(
@@ -173,21 +177,51 @@ private fun FiltersDialog(
 
                 Spacer(Modifier.padding(top=12.dp))
 
-                //CATEGORY CHECKBOX
-                all.forEach{ category ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                val listState = rememberLazyListState()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp)
+                ){
+                    LazyColumn(
+                        state = listState,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ){
-                        Checkbox(
-                            checked = category in selected,
-                            onCheckedChange = { onToggle(category) }
-                        )
-                        Text(text=category)
+                            .align(Alignment.CenterStart), // limita altezza per attivare lo scroll
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        contentPadding = PaddingValues(bottom = 2.dp)
+                    ) {
+                        items(
+                            items = all,
+                            key = { it } // chiave stabile = nome categoria
+                        ) { category ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = category in selected,
+                                    onCheckedChange = { onToggle(category) }
+                                )
+                                Text(
+                                    text = category,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
                     }
+
+                    VerticalScrollBar(
+                        listState = listState,
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(start = 4.dp)
+                    )
                 }
+
 
                 Spacer(Modifier.padding(top=16.dp))
 

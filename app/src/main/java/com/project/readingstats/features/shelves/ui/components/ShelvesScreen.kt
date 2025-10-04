@@ -1,10 +1,10 @@
-// features/shelves/ui/components/ShelvesScreen.kt
 package com.project.readingstats.features.shelves.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -14,6 +14,8 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -38,14 +39,13 @@ private data class ShelfRowUi(
 fun ShelvesScreen(
     counts: Map<ShelfType, Int> = emptyMap(),
     modifier: Modifier = Modifier,
-
 ) {
     // Dati statici della lista; i testi possono essere sostituiti con string resources.
     val rows = listOf(
         ShelfRowUi(
             type = ShelfType.TO_READ,
             title = "Da Leggere",
-            icon = { Icon(Icons.Outlined.MenuBook, contentDescription = null) }
+            icon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null) }
         ),
         ShelfRowUi(
             type = ShelfType.READING,
@@ -92,7 +92,11 @@ fun ShelvesScreen(
                         .padding(horizontal = 12.dp)
                 )
                 if (index < rows.lastIndex) {
-                    Divider(modifier = Modifier.padding(start = 56.dp)) // allinea al testo
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 12.dp, end = 12.dp),
+                        thickness = DividerDefaults.Thickness,
+                        color = DividerDefaults.color
+                    ) // allinea al testo
                 }
             }
         }
