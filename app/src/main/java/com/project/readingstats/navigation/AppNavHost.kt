@@ -15,7 +15,6 @@ import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen
 import com.project.readingstats.features.profile.ui.components.ProfileScreen
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
-
 /*
 *
 * NavHost code for navigation through screens
@@ -101,7 +100,7 @@ fun AppNavHost(
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
                     composable(BottomDest.Catalog.route) { CatalogScreen(onLogout = onLogout) }
                     composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
-                    composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
+                    composable(BottomDest.Profile.route) { ProfileScreen (onLogout = onLogout) }
                 }
             }
         }
