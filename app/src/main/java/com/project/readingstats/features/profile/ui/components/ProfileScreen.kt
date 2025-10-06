@@ -20,13 +20,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.project.readingstats.features.auth.data.model.UserModelDto
 
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
+fun ProfileScreen(
+    user: UserModelDto?,
+    onLogout: () -> Unit
+) {
     var currentScreen by remember { mutableStateOf("profile") }
 
     when (currentScreen) {
         "profile" -> ProfileRoot(
+            user = user,
             onLogout = onLogout,
             onDatiPersonali = { currentScreen = "datiPersonali" },
             onListaAmici = { currentScreen = "listaAmici" },
@@ -41,6 +46,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
 @Composable
 fun ProfileRoot(
+    user: UserModelDto?,
     onLogout: () -> Unit,
     onDatiPersonali: () -> Unit = {},
     onListaAmici: () -> Unit = {},
@@ -73,16 +79,14 @@ fun ProfileRoot(
                     .padding(horizontal = 24.dp)
                     .fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Nome Utente",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                     )
                     Text(
-                        text = "NomeUtente",
+                        text = user?.username ?: "Caricamento...",  // MOSTRA IL NOME DINAMICO!
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)

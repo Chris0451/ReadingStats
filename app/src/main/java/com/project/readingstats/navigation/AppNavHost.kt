@@ -4,16 +4,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.project.readingstats.core.ui.components.AppScaffold
 import com.project.readingstats.core.ui.components.BottomDest
 import com.project.readingstats.core.ui.components.NavBarComponent
+import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
 import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen
+import com.project.readingstats.features.profile.ui.components.ProfileRoot
 import com.project.readingstats.features.profile.ui.components.ProfileScreen
+import com.project.readingstats.features.profile.ui.components.ProfileViewModel
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
 /*
 *
@@ -80,6 +86,12 @@ fun AppNavHost(
         composable(Screen.Main.route) { //Main screen route
             val tabsNavController = rememberNavController()
 
+            val profileViewModel = ProfileViewModel(
+                firestoreUserDataSource = FirestoreUserDataSource(FirebaseFirestore.getInstance())
+            )
+
+            val user by profileViewModel.user.collectAsState()
+
             val onLogout: () -> Unit = { //Logout button function
                 FirebaseAuth.getInstance().signOut() //Logout from Firebase
                 navController.navigate(Screen.Login.route) { //Destination call to Login Screen after logout
@@ -100,7 +112,7 @@ fun AppNavHost(
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
                     composable(BottomDest.Catalog.route) { CatalogScreen(onLogout = onLogout) }
                     composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
-                    composable(BottomDest.Profile.route) { ProfileScreen (onLogout = onLogout) }
+                    composable(BottomDest.Profile.route) { ProfileScreen (user = user, onLogout = onLogout) }
                 }
             }
         }
