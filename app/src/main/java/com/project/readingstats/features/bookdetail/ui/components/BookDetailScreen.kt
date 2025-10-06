@@ -1,6 +1,7 @@
 package com.project.readingstats.features.bookdetail.ui.components
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,10 +27,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,10 +48,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.project.readingstats.R
+import com.project.readingstats.features.bookdetail.BookDetailViewModel
 import com.project.readingstats.features.catalog.domain.model.Book
+import com.project.readingstats.features.shelves.domain.model.ReadingStatus
+import com.project.readingstats.features.shelves.domain.model.UserBook
+import kotlinx.coroutines.flow.collectLatest
 import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +67,25 @@ fun BookDetailScreen(
     book: Book,
     onBack: () -> Unit
 ){
+    BackHandler { onBack() }
+    val vm: BookDetailViewModel = hiltViewModel()
+    val currentStatus by vm.status.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // listener eventi
+    LaunchedEffect(Unit) {
+        vm.events.collectLatest { msg ->
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(
+                msg,
+                withDismissAction = false,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -129,14 +159,24 @@ fun BookDetailScreen(
                         )
                     }
                     PageCountText(book.pageCount)
-                    Row(
-                        modifier = Modifier
-                    ){
-                        BookButtonIcon(Icons.AutoMirrored.Outlined.MenuBook, {})
-                        BookButtonIcon(Icons.Outlined.AutoStories, {})
-                        BookButtonIcon(Icons.Outlined.CheckCircle, {})
-                        BookButtonIcon(Icons.Outlined.Category, {})
-                    }
+
+                    BookStatusBar(
+                        current = currentStatus,
+                        onSet = { newStatus ->
+                            // Payload minimo se il doc non esiste ancora
+                            val payload = UserBook(
+                                id = book.id,                // = volumeId
+                                volumeId = book.id,
+                                title = book.title,
+                                thumbnail = book.thumbnail,
+                                authors = book.authors,
+                                categories = book.categories,
+                                pageCount = book.pageCount,
+                                status = newStatus           // il repo lo sovrascrive comunque
+                            )
+                            vm.onStatusIconClick(newStatus, payload)
+                        }
+                    )
                 }
             }
 
@@ -188,22 +228,47 @@ private fun PageCountText(pageCount: Int?) {
 }
 
 @Composable
-private fun BookButtonIcon(imageVector: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    var checked by remember { mutableStateOf(false) }
-    val color by animateColorAsState(
-        if (checked) {
-            MaterialTheme.colorScheme.primary
-        } else MaterialTheme.colorScheme.onSurface,
-        label = "iconChanged"
-    )
-    IconToggleButton(
-        checked = checked,
-        modifier = modifier,
-        onCheckedChange = {checked = it}
+private fun BookStatusBar(current: ReadingStatus?, onSet: (ReadingStatus) -> Unit){
+    Row(
+        verticalAlignment = Alignment.CenterVertically
     ){
+        StatusIcon(
+            checked = current == ReadingStatus.TO_READ,
+            icon = Icons.AutoMirrored.Outlined.MenuBook,
+            label = "Da leggere",
+            onClick = { onSet(ReadingStatus.TO_READ)}
+        )
+        StatusIcon(
+            checked = current == ReadingStatus.READING,
+            icon = Icons.Outlined.AutoStories,
+            label = "In lettura",
+            onClick = { onSet(ReadingStatus.READING)}
+        )
+        StatusIcon(
+            checked = current == ReadingStatus.READ,
+            icon = Icons.Outlined.CheckCircle,
+            label = "Letto",
+            onClick = { onSet(ReadingStatus.READ)}
+        )
+    }
+}
+
+@Composable
+private fun StatusIcon(
+  checked: Boolean,
+  icon: ImageVector,
+  label: String?,
+  onClick: () -> Unit
+){
+    val color by animateColorAsState(
+        if(checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        label = "statusTint"
+    )
+
+    IconButton(onClick = onClick) {
         Icon(
-            imageVector = imageVector,
-            contentDescription = null,
+            imageVector = icon,
+            contentDescription = label,
             tint = color
         )
     }

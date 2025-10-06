@@ -1,6 +1,7 @@
 package com.project.readingstats.features.shelves.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.project.readingstats.features.shelves.data.mapper.toUserBook
@@ -17,11 +18,17 @@ class ShelvesRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
 ): ShelvesRepository {
-    private val uid: String get() = requireNotNull(auth.currentUser?.uid) {"Utente non autenticato"}
+
+    private fun uidOrNull(): String? = auth.currentUser?.uid
+
+    private fun collectionOrNull(): CollectionReference? =
+        uidOrNull()?.let { uid ->
+            firestore.collection("users").document(uid).collection("books")
+        }
 
     private fun collection() = firestore
         .collection("users")
-        .document(uid)
+        .document(requireNotNull(auth.currentUser?.uid) { "Utente non autenticato" })
         .collection("books")
 
     override fun observeBooks(status: ReadingStatus): Flow<List<UserBook>> = callbackFlow {
@@ -39,6 +46,13 @@ class ShelvesRepositoryImpl @Inject constructor(
         awaitClose { registration.remove() }
     }
 
+    /*
+    *
+    * Observe the status of a book
+    * - if the book does not exist, return null
+    * - if the book exists, return the status
+    * - if the status is not valid, return null
+     */
     override fun observeBookStatus(userBookId: String): Flow<ReadingStatus?> = callbackFlow {
         val registration = collection()
             .document(userBookId)
@@ -66,9 +80,11 @@ class ShelvesRepositoryImpl @Inject constructor(
     override suspend fun setStatus(userBookId: String, payload: UserBook?, status: ReadingStatus) {
         val docRef = collection().document(userBookId)
         val snapshot = docRef.get().await()
+        val now = System.currentTimeMillis()
 
         val base = mapOf(
             "status" to status.name,
+            "updatedAt" to now
         )
 
         if(snapshot.exists()){
@@ -78,13 +94,19 @@ class ShelvesRepositoryImpl @Inject constructor(
                 "volumeId" to userBookId,
                 "title" to payload?.title.orEmpty(),
                 "thumbnail" to payload?.thumbnail,
-                "authors" to payload?.authors,
-                "categories" to payload?.categories,
-                "pageCount" to payload?.pageCount,
-                "status" to status.name
+                "authors" to (payload?.authors ?: emptyList()),
+                "categories" to (payload?.categories ?: emptyList()),
+                "pageCount" to (payload?.pageCount ?: 0),
+                "status" to status.name,
+                "updatedAt" to now
             )
             docRef.set(createdData).await()
         }
+    }
+
+    override suspend fun removeBook(userBookId: String) {
+        val collection = collectionOrNull() ?: throw  IllegalStateException("Utente non autenticato")
+        collection.document(userBookId).delete().await()
     }
 
     private fun <T> List<T>?.orElseEmpty(): List<T> = this ?: emptyList()

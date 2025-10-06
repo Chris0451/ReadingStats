@@ -39,6 +39,7 @@ private data class ShelfRowUi(
 fun ShelvesScreen(
     counts: Map<ShelfType, Int> = emptyMap(),
     modifier: Modifier = Modifier,
+    onShelfClick: (ShelfType) -> Unit = {}
 ) {
     // Dati statici della lista; i testi possono essere sostituiti con string resources.
     val rows = listOf(
@@ -56,12 +57,6 @@ fun ShelvesScreen(
             type = ShelfType.READ,
             title = "Letti",
             icon = { Icon(Icons.Outlined.CheckCircle, contentDescription = null) }
-        ),
-        ShelfRowUi(
-            type = ShelfType.CUSTOM_CATEGORIES,
-            title = "Categorie personali",
-            subtitle = "Raccolte create da te",
-            icon = { Icon(Icons.Outlined.Category, contentDescription = null) }
         )
     )
 
@@ -83,7 +78,7 @@ fun ShelvesScreen(
                     subtitle = item.subtitle,
                     count = counts[item.type],
                     leading = item.icon,
-                    onClick = { /*onShelfClick(item.type)*/ },
+                    onClick = { onShelfClick(item.type) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics {
@@ -148,18 +143,4 @@ private fun ShelfRow(
             }
         }
     }
-}
-
-/* ============================= PREVIEW ============================= */
-
-@Preview(showBackground = true)
-@Composable
-private fun ShelvesScreenPreview() {
-    ShelvesScreen(
-        counts = mapOf(
-            ShelfType.TO_READ to 8,
-            ShelfType.READING to 2,
-            ShelfType.READ to 15
-        )
-    )
 }

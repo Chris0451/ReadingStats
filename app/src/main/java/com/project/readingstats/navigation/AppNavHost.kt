@@ -4,41 +4,39 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.core.ui.components.AppScaffold
 import com.project.readingstats.core.ui.components.BottomDest
 import com.project.readingstats.core.ui.components.NavBarComponent
-import com.project.readingstats.features.bookdetail.ui.components.BookDetailScreen
 import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen
 import com.project.readingstats.features.profile.ui.components.ProfileScreen
+import com.project.readingstats.features.shelves.ui.components.SelectedShelfScreen
+import com.project.readingstats.features.shelves.ui.components.ShelfType
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
-
-/*
-*
-* NavHost code for navigation through screens
-* Login and register screens are handled in LoginRoute and RegistrationRoute, implemented in navigation.Routes.kt
-* Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost
-*
- */
 
 @Composable
 fun AppNavHost(
     modifier: Modifier = Modifier,
-    start: Screen = Screen.Login, //Login screen by default if user not logged in
-    isAuthenticated: Boolean //Check if user is logged in (managed in MainActivity)
+    start: Screen = Screen.Login,
+    isAuthenticated: Boolean
 ) {
     val navController = rememberNavController()
 
     LaunchedEffect(isAuthenticated) {
-        if(isAuthenticated){
+        if (isAuthenticated) {
             navController.navigate(Screen.Main.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
+                popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
                 launchSingleTop = true
+                restoreState = false
             }
         }
     }
@@ -48,65 +46,135 @@ fun AppNavHost(
         startDestination = if (isAuthenticated) Screen.Main.route else start.route,
         modifier = modifier
     ) {
-        // ---- GRAFO AUTH ----
-        composable(Screen.Login.route) { //Login screen route
+        // ---- AUTH ----
+        composable(Screen.Login.route) {
             LoginRoute(
-                onLoginSuccess = { //Login successful
-                    navController.navigate(Screen.Main.route) { //Destination call to Main Screen after login successful
-                        popUpTo(Screen.Login.route) { inclusive = true } //Remove login screen after login successful
-                        launchSingleTop = true //No main duplication in order to avoid multiple instances of Main screen
+                onLoginSuccess = {
+                    navController.navigate(Screen.Main.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                        launchSingleTop = true
+                        restoreState = false
                     }
                 },
-                onRegisterClick = { //Register button clicked
-                    navController.navigate(Screen.Register.route){ //Destination call to Register Screen from Login Screen
-                        launchSingleTop = true //Does not return to registration screen if users come back after multiple clicks
-                    }
+                onRegisterClick = {
+                    navController.navigate(Screen.Register.route) { launchSingleTop = true }
                 }
             )
         }
-        composable(Screen.Register.route) { //Register screen route
+        composable(Screen.Register.route) {
             RegistrationRoute(
-                onRegistered = { //Registration successful
-                    navController.navigate(Screen.Main.route) { //Destination call to Main Screen after registration successful
-                        popUpTo(Screen.Register.route) { inclusive = true } //Remove registration screen after registration successful
-                        launchSingleTop = true //No Main duplication in order to avoid multiple instances of Main screen
+                onRegistered = {
+                    navController.navigate(Screen.Main.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                        launchSingleTop = true
+                        restoreState = false
                     }
                 },
-                onLoginClick = { //Login button clicked
+                onLoginClick = {
                     navController.popBackStack()
-                    navController.navigate(Screen.Login.route){
-                        launchSingleTop = true //Does not return to login screen if users come back after multiple clicks
-                    }
+                    navController.navigate(Screen.Login.route) { launchSingleTop = true }
                 }
             )
         }
 
+        val safeNavigateUp: () -> Unit = { navController.navigateUp() }
 
-        composable(Screen.BookDetail.route) {
-            val book = navController.previousBackStackEntry?.savedStateHandle?.get<Book>("book")
-            if (book != null) {
-                BookDetailScreenRoute(
-                    book = book,
-                    onBack = { navController.popBackStack() }
-                )
+        val popBackToPrevious: () -> Unit ={
+            val previous = navController.previousBackStackEntry
+            if (previous != null) {
+                navController.popBackStack(previous.destination.id, false)
+            } else {
+                navController.navigateUp()
             }
         }
 
-        // ---- GRAFO MAIN (AppScaffold + NavBar + Tab NavHost) ----
-        composable(Screen.Main.route) { //Main screen route
+        // ---- DETTAGLIO LIBRO (stack esterno) ----
+        composable(
+            route = Screen.BookDetail.route,
+            arguments = listOf(navArgument("volumeId") { type = NavType.StringType }, navArgument("fromShelf") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            val fromShelf: String? = backStackEntry.arguments?.getString("fromShelf")
+            val previousHandle = navController.previousBackStackEntry?.savedStateHandle
+            val routedBook = remember(previousHandle) { previousHandle?.get<Book>("book") }
+
+            LaunchedEffect(routedBook) {
+                if (routedBook != null) {
+                    previousHandle?.remove<Book>("book")
+                }
+            }
+
+            val onBack: () -> Unit = {
+                if (fromShelf != null) {
+                    navController.popBackStack(
+                        Screen.ShelfBooks.createRoute(fromShelf),
+                        inclusive = false
+                    )
+                }else{
+                    safeNavigateUp()
+                }
+            }
+
+            if (routedBook != null) {
+                BookDetailScreenRoute(
+                    book = routedBook,
+                    onBack = onBack
+                )
+            } else {
+                onBack()
+            }
+        }
+
+        // ---- LISTA LIBRI SALVATI (stack esterno) ----
+        composable(
+            route = Screen.ShelfBooks.route,
+            arguments = listOf(navArgument("shelfStatus") { type = NavType.StringType })
+        ) { backStackEntry ->
+            LaunchedEffect(backStackEntry) {
+                backStackEntry.savedStateHandle.remove<Book>("book")
+            }
+            val shelfStatus = backStackEntry.arguments?.getString("shelfStatus") ?: "TO_READ"
+
+            SelectedShelfScreen(
+                onBack = { safeNavigateUp() },
+                onOpenBookDetail = { uiBook ->
+                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                        "book",
+                        Book(
+                            id = uiBook.id,
+                            title = uiBook.title,
+                            authors = uiBook.authors,
+                            thumbnail = uiBook.thumbnail,
+                            categories = uiBook.categories,
+                            publishedDate = null,
+                            pageCount = uiBook.pageCount,
+                            description = null
+                        )
+                    )
+                    navController.navigate(Screen.BookDetail.createRoute(uiBook.id, fromShelf = shelfStatus))
+                }
+            )
+        }
+
+        // ---- MAIN + BottomBar (stack esterno con NavHost interno) ----
+        composable(Screen.Main.route) {
             val tabsNavController = rememberNavController()
 
-            val onLogout: () -> Unit = { //Logout button function
-                FirebaseAuth.getInstance().signOut() //Logout from Firebase
-                navController.navigate(Screen.Login.route) { //Destination call to Login Screen after logout
-                    popUpTo(Screen.Main.route) { inclusive = true } //Remove Main screen after logout
-                    launchSingleTop = true //No Login duplication in order to avoid multiple instances of Login screen
+            val onLogout: () -> Unit = {
+                FirebaseAuth.getInstance().signOut()
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                    launchSingleTop = true
+                    restoreState = false
                 }
             }
 
             val onOpenBook: (Book) -> Unit = { book ->
                 navController.currentBackStackEntry?.savedStateHandle?.set("book", book)
-                navController.navigate(Screen.BookDetail.route)
+                navController.navigate(Screen.BookDetail.createRoute(book.id))
             }
 
             AppScaffold(
@@ -117,10 +185,22 @@ fun AppNavHost(
                     startDestination = BottomDest.Home.route,
                     modifier = Modifier.padding(innerPadding)
                 ) {
-                    // ---- GRAPH TAB NAVHOST ----
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
-                    composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) } //RICHIAMO FUNZIONE PER APERTURA LIBRO
-                    composable(BottomDest.Books.route) { ShelvesScreen() }
+                    composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) }
+                    composable(BottomDest.Books.route) {
+                        ShelvesScreen(
+                            onShelfClick = { shelfType ->
+                                navController.currentBackStackEntry?.savedStateHandle?.remove<Book>("book")
+                                val status = when (shelfType) {
+                                    ShelfType.TO_READ -> "TO_READ"
+                                    ShelfType.READING -> "READING"
+                                    ShelfType.READ -> "READ"
+                                    ShelfType.CUSTOM_CATEGORIES -> "custom"
+                                }
+                                navController.navigate(Screen.ShelfBooks.createRoute(status))
+                            }
+                        )
+                    }
                     composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
                 }
             }

@@ -15,7 +15,20 @@ sealed interface Screen {
     data object Login : Screen { override val route = "login"}
     data object Register : Screen { override val route = "register"}
     data object Main : Screen { override val route = "main"}
-    data object BookDetail : Screen { override val route = "bookDetail"}
+    data object BookDetail : Screen {
+        private const val ARG_VOLUME_ID = "volumeId"
+        private const val ARG_FROM_SHELF = "fromShelf"
+        override val route = "bookDetail/{$ARG_VOLUME_ID}?$ARG_FROM_SHELF={$ARG_FROM_SHELF}"
+        fun createRoute(volumeId: String, fromShelf: String? = null): String =
+            if(fromShelf != null) "bookDetail/$volumeId?$ARG_FROM_SHELF=$fromShelf"
+            else "bookDetail/$volumeId"
+    }
+
+    data object ShelfBooks : Screen {
+        private const val ARG_STATUS = "shelfStatus" // TO_READ | READING | READ
+        override val route = "shelfBooks/{$ARG_STATUS}"
+        fun createRoute(status: String) = "shelfBooks/$status"
+    }
 
     data object Profile : Screen {
         private const val ARG_USER_ID = "userId"

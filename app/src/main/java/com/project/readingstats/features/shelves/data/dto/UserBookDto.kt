@@ -10,4 +10,5 @@ data class UserBookDto(
     val categories: List<String> = emptyList(),
     val pageCount: Int? = null,
     val status: ReadingStatus = ReadingStatus.TO_READ,
+    val updatedAt: Long = System.currentTimeMillis()
 )
