@@ -112,7 +112,7 @@ fun AppNavHost(
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
                     composable(BottomDest.Catalog.route) { CatalogScreen(onLogout = onLogout) }
                     composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
-                    composable(BottomDest.Profile.route) { ProfileScreen (user = user, onLogout = onLogout) }
+                    composable(BottomDest.Profile.route) { ProfileScreen (user = user,profileViewModel = profileViewModel, onLogout = onLogout) }
                 }
             }
         }

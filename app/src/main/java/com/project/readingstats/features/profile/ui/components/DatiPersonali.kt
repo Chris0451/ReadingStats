@@ -16,10 +16,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.project.readingstats.features.auth.data.model.UserModelDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatiPersonali(onBack: () -> Unit) {
+fun DatiPersonali(
+    user: UserModelDto?, // <-- Passa l'utente come parametro
+    onBack: () -> Unit,
+    onEdit: () -> Unit // Nuova callback per andare alla modifica
+) {
     Column(
         Modifier
             .fillMaxSize()
@@ -48,7 +53,7 @@ fun DatiPersonali(onBack: () -> Unit) {
             onClick = {},
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
             shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Icon(Icons.Default.Person, contentDescription = "Icona dati personali")
             Spacer(Modifier.width(8.dp))
@@ -64,13 +69,14 @@ fun DatiPersonali(onBack: () -> Unit) {
                 Modifier.padding(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                LabelAndPlaceholder(label = "Nome Utente")
-                LabelAndPlaceholder(label = "Name")
-                LabelAndPlaceholder(label = "Surname")
-                LabelAndPlaceholder(label = "Email")
+                // Mostra i veri valori dell'utente
+                LabelAndPlaceholder(label = "Nome Utente", value = user?.username)
+                LabelAndPlaceholder(label = "Name", value = user?.name)
+                LabelAndPlaceholder(label = "Surname", value = user?.surname)
+                LabelAndPlaceholder(label = "Email", value = user?.email)
                 Spacer(Modifier.height(14.dp))
                 Button(
-                    onClick = {},
+                    onClick = { onEdit() }, // Chiama la callback per andare alla schermata di modifica
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -82,9 +88,10 @@ fun DatiPersonali(onBack: () -> Unit) {
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
 
 @Composable
-fun LabelAndPlaceholder(label: String) {
+fun LabelAndPlaceholder(label: String, value: String?) {
     Column(
         Modifier
             .padding(vertical = 6.dp)
@@ -100,7 +107,7 @@ fun LabelAndPlaceholder(label: String) {
                 .background(Color(0xFFF2F2F2)),
             contentAlignment = Alignment.CenterStart
         ) {
-            Text("Value", color = Color.Gray, modifier = Modifier.padding(start = 10.dp))
+            Text(value ?: "", color = Color.Gray, modifier = Modifier.padding(start = 10.dp))
         }
     }
 }
