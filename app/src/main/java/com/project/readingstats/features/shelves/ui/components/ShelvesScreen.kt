@@ -27,7 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-enum class ShelfType { TO_READ, READING, READ, CUSTOM_CATEGORIES }
+enum class ShelfType { TO_READ, READING, READ }
 private data class ShelfRowUi(
     val type: ShelfType,
     val title: String,

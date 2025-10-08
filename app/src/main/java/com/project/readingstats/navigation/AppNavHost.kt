@@ -79,15 +79,6 @@ fun AppNavHost(
 
         val safeNavigateUp: () -> Unit = { navController.navigateUp() }
 
-        val popBackToPrevious: () -> Unit ={
-            val previous = navController.previousBackStackEntry
-            if (previous != null) {
-                navController.popBackStack(previous.destination.id, false)
-            } else {
-                navController.navigateUp()
-            }
-        }
-
         // ---- DETTAGLIO LIBRO (stack esterno) ----
         composable(
             route = Screen.BookDetail.route,
@@ -195,7 +186,6 @@ fun AppNavHost(
                                     ShelfType.TO_READ -> "TO_READ"
                                     ShelfType.READING -> "READING"
                                     ShelfType.READ -> "READ"
-                                    ShelfType.CUSTOM_CATEGORIES -> "custom"
                                 }
                                 navController.navigate(Screen.ShelfBooks.createRoute(status))
                             }

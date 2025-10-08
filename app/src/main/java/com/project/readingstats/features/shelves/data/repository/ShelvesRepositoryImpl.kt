@@ -1,9 +1,11 @@
 package com.project.readingstats.features.shelves.data.repository
 
+import androidx.compose.animation.core.snap
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import com.project.readingstats.features.shelves.data.mapper.toUserBook
 import com.project.readingstats.features.shelves.domain.model.ReadingStatus
 import com.project.readingstats.features.shelves.domain.model.UserBook
@@ -70,6 +72,19 @@ class ShelvesRepositoryImpl @Inject constructor(
         awaitClose { registration.remove() }
     }
 
+    override fun observeUserBook(userBookId: String): Flow<UserBook?> = callbackFlow {
+        val registration = collection()
+            .document(userBookId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(null)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.toUserBook())
+            }
+        awaitClose { registration.remove() }
+    }
+
     /*
     *
     * Setting unique status for each book
@@ -96,7 +111,7 @@ class ShelvesRepositoryImpl @Inject constructor(
                 "thumbnail" to payload?.thumbnail,
                 "authors" to (payload?.authors ?: emptyList()),
                 "categories" to (payload?.categories ?: emptyList()),
-                "pageCount" to (payload?.pageCount ?: 0),
+                "pageCount" to (payload?.pageCount), //Da assegnare il valore tramite setPageCount
                 "status" to status.name,
                 "updatedAt" to now
             )
@@ -107,6 +122,37 @@ class ShelvesRepositoryImpl @Inject constructor(
     override suspend fun removeBook(userBookId: String) {
         val collection = collectionOrNull() ?: throw  IllegalStateException("Utente non autenticato")
         collection.document(userBookId).delete().await()
+    }
+
+    //Assign count pages to book without a count of pages
+    override suspend fun setPageCount(userBookId: String, pageCount: Int) {
+        require(pageCount > 0) { "Il numero di pagine deve essere maggiore di 0" }
+        val docRef = collection().document(userBookId)
+        val now = System.currentTimeMillis()
+        val data = mapOf(
+            "volumeId" to userBookId,
+            "pageCount" to pageCount,
+            "updatedAt" to now
+        )
+        docRef.set(data, SetOptions.merge()).await()
+    }
+
+    //Assign in-reading pages for books selected by user
+    override suspend fun setPageInReading(userBookId: String, pageInReading: Int) {
+        require(pageInReading >= 0) { "Il numero di pagine in lettura non può essere negativo" }
+        val docRef = collection().document(userBookId)
+        val snapshot = docRef.get().await()
+        val total = snapshot.getLong("pageCount")?.toInt() ?: 0
+
+        if (total != 0 && pageInReading > total) throw IllegalArgumentException("Il numero di pagine in lettura non può essere maggiore del totale di pagine ($total)")
+
+        val now = System.currentTimeMillis()
+        val data = mapOf(
+            "volumeId" to userBookId,
+            "pageInReading" to pageInReading,
+            "updatedAt" to now
+        )
+        docRef.set(data, SetOptions.merge()).await()
     }
 
     private fun <T> List<T>?.orElseEmpty(): List<T> = this ?: emptyList()

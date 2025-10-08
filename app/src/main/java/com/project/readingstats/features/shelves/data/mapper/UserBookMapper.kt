@@ -14,6 +14,7 @@ fun DocumentSnapshot.toUserBook(): UserBook? {
         thumbnail = dto.thumbnail,
         categories = dto.categories,
         pageCount = dto.pageCount,
+        pageInReading = dto.pageInReading,
         status = dto.status,
     )
 }
@@ -25,5 +26,6 @@ fun UserBook.toDto() = UserBookDto(
     authors = authors,
     categories = categories,
     pageCount = pageCount,
+    pageInReading = pageInReading,
     status = status
 )

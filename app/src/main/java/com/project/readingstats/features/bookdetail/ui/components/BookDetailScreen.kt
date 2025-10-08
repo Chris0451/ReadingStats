@@ -35,9 +35,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +61,10 @@ import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.shelves.domain.model.ReadingStatus
 import com.project.readingstats.features.shelves.domain.model.UserBook
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
+
+enum class ReadingFlowMode { START, UPDATE }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +77,11 @@ fun BookDetailScreen(
     val currentStatus by vm.status.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    var readingMode by remember { mutableStateOf<ReadingFlowMode?>(null) }
+    var readingPayload by remember { mutableStateOf<UserBook?>(null) }
+
+    val snackBarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     // listener eventi
     LaunchedEffect(Unit) {
         vm.events.collectLatest { msg ->
@@ -163,18 +173,26 @@ fun BookDetailScreen(
                     BookStatusBar(
                         current = currentStatus,
                         onSet = { newStatus ->
-                            // Payload minimo se il doc non esiste ancora
                             val payload = UserBook(
-                                id = book.id,                // = volumeId
+                                id = book.id,
                                 volumeId = book.id,
                                 title = book.title,
                                 thumbnail = book.thumbnail,
                                 authors = book.authors,
                                 categories = book.categories,
                                 pageCount = book.pageCount,
-                                status = newStatus           // il repo lo sovrascrive comunque
+                                pageInReading = null,
+                                status = newStatus
                             )
-                            vm.onStatusIconClick(newStatus, payload)
+
+                            when(newStatus){
+                                ReadingStatus.READING ->{
+                                    readingPayload = payload
+                                    readingMode = if(currentStatus != ReadingStatus.READING) ReadingFlowMode.START else ReadingFlowMode.UPDATE
+                                } else -> {
+                                    vm.onStatusIconClick(newStatus, payload)
+                                }
+                            }
                         }
                     )
                 }
@@ -182,12 +200,35 @@ fun BookDetailScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            //INSERIMENTO ICONE CLICCABILI PER AGGIUNTA LIBRO
-
-
             ExpandableText(
                 text = book.description ?: "Nessuna descrizione disponibile.",
             )
+
+            if (readingMode != null && readingPayload != null) {
+                val savedTotal: State<Int?> = vm.savedTotalPages.collectAsStateWithLifecycle()
+                ReadingFlowDialogs(
+                    vm = vm,
+                    mode = readingMode!!,
+                    apiPageCount = savedTotal.value ?: book.pageCount,
+                    payload = readingPayload!!,
+                    onClose = {
+                        readingMode = null
+                        readingPayload = null
+                    },
+                    onReachedTotal = {
+                        scope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar(
+                                message = "Hai raggiunto il totale. Tocca l'icona \"Letto\" per completare.",
+                                actionLabel = "OK",
+                                withDismissAction = true,
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    }
+                )
+            }
+
         }
     }
 }
@@ -214,6 +255,8 @@ private fun ExpandableText(
         }
     }
 }
+
+
 
 @Composable
 private fun PageCountText(pageCount: Int?) {
@@ -273,3 +316,105 @@ private fun StatusIcon(
         )
     }
 }
+
+@Composable
+private fun ReadingFlowDialogs(
+    vm: BookDetailViewModel,
+    mode: ReadingFlowMode,
+    apiPageCount: Int?,
+    payload: UserBook,
+    onClose: () -> Unit,
+    onReachedTotal: () -> Unit
+) {
+    // START: se pageCount mancante → chiedilo; poi chiedi pages read
+    // UPDATE: chiedi solo pages read (non cambiare stato qui)
+
+    val showTotalDialog = remember(mode, apiPageCount) {
+        mutableStateOf(mode == ReadingFlowMode.START && (apiPageCount == null || apiPageCount <= 0))
+    }
+    val showReadDialog  = remember(mode, apiPageCount) {
+        mutableStateOf(mode == ReadingFlowMode.UPDATE || (apiPageCount != null && apiPageCount > 0))
+    }
+
+    val totalPages = remember(apiPageCount) { mutableStateOf(apiPageCount?.toString() ?: "") }
+    val readPages  = remember { mutableStateOf("") }
+
+    val totalError = remember { mutableStateOf<String?>(null) }
+    val readError  = remember { mutableStateOf<String?>(null) }
+
+    val savedRead by vm.savedReadPages.collectAsStateWithLifecycle()
+
+    if (showTotalDialog.value) {
+        TotalPagesDialog(
+            value = totalPages.value,
+            onValue = { v ->
+                totalPages.value = v.filter { it.isDigit() }
+                totalError.value = when {
+                    totalPages.value.isEmpty() -> "Inserisci un numero"
+                    totalPages.value.toIntOrNull()?.let { it <= 0 } == true -> "Deve essere > 0"
+                    else -> null
+                }
+            },
+            onDismiss = {
+                showTotalDialog.value = false
+                onClose() // abbandona il flusso
+            },
+            onConfirm = {
+                val count = totalPages.value.toIntOrNull()
+                if (count != null && count > 0) {
+                    vm.updatePageCount(count)
+                    showTotalDialog.value = false
+                    showReadDialog.value = true
+                }
+            },
+            isError = totalError.value != null,
+            supportingText = totalError.value
+        )
+    }
+
+    // 2) Dialog pagine lette (START e UPDATE)
+    if (showReadDialog.value) {
+        val max = totalPages.value.toIntOrNull() ?: apiPageCount
+        ReadPagesDialog(
+            value = readPages.value,
+            max = max,
+            previousRead = savedRead,
+            onValue = { v ->
+                readPages.value = v.filter { it.isDigit() }
+                val n = readPages.value.toIntOrNull()
+                readError.value = when {
+                    readPages.value.isEmpty() -> "Inserisci un numero"
+                    n == null -> "Valore non valido"
+                    n < 1 -> "Devi aver letto almeno una pagina"
+                    max != null && n > max -> "Non può superare $max"
+                    else -> null
+                }
+            },
+            onDismiss = {
+                showReadDialog.value = false
+                onClose()
+            },
+            onConfirm = {
+                val n = readPages.value.toIntOrNull()
+                val valid = n != null && n >= 1 && (max == null || n <= max)
+                if (valid) {
+                    vm.updatePagesRead(n!!)
+                    showReadDialog.value = false
+
+                    if (mode == ReadingFlowMode.START) {
+                        // SOLO dopo conferma valida in START → attiva stato READING
+                        vm.onStatusIconClick(ReadingStatus.READING, payload)
+                    } else {
+                        // UPDATE: resta READING; se n == max, suggerisci di toccare "Letto"
+                        if (max != null && n == max) onReachedTotal()
+                    }
+                    onClose()
+                }
+            },
+            isError = readError.value != null,
+            supportingText = readError.value
+        )
+    }
+}
+
+

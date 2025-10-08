@@ -7,7 +7,14 @@ import kotlinx.coroutines.flow.Flow
 interface ShelvesRepository {
     fun observeBooks(status: ReadingStatus): Flow<List<UserBook>>
     fun observeBookStatus(userBookId: String): Flow<ReadingStatus?>
+
+    fun observeUserBook(userBookId: String): Flow<UserBook?>
     suspend fun setStatus(userBookId: String, payload: UserBook?, status: ReadingStatus)
 
     suspend fun removeBook(userBookId: String)
+
+    suspend fun setPageCount(userBookId: String, pageCount: Int)
+    suspend fun setPageInReading(userBookId: String, pageInReading: Int)
+
+
 }
