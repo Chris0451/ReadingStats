@@ -20,8 +20,15 @@ data class VolumeInfo(
     val description: String? = null,
     val pageCount: Int? = null,
     val categories: List<String>? = null,
-    val imageLinks: ImageLinks? = null
+    val imageLinks: ImageLinks? = null,
+    val industryIdentifiers: List<IndustryIdentifier>? = null
 )
 
 @JsonClass(generateAdapter = true)
 data class ImageLinks(val thumbnail: String? = null, val smallThumbnail: String? = null)
+
+@JsonClass(generateAdapter = true)
+data class IndustryIdentifier(
+    val type: String? = null,
+    val identifier: String? = null
+)

@@ -142,7 +142,9 @@ fun AppNavHost(
                             categories = uiBook.categories,
                             publishedDate = null,
                             pageCount = uiBook.pageCount,
-                            description = null
+                            description = null,
+                            isbn13 = uiBook.isbn13,
+                            isbn10 = uiBook.isbn10
                         )
                     )
                     navController.navigate(Screen.BookDetail.createRoute(uiBook.id, fromShelf = shelfStatus))
@@ -188,7 +190,8 @@ fun AppNavHost(
                                     ShelfType.READ -> "READ"
                                 }
                                 navController.navigate(Screen.ShelfBooks.createRoute(status))
-                            }
+                            },
+                            onOpenBook = onOpenBook
                         )
                     }
                     composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }

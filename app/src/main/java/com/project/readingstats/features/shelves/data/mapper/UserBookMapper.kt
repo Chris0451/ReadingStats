@@ -3,6 +3,7 @@ package com.project.readingstats.features.shelves.data.mapper
 import com.google.firebase.firestore.DocumentSnapshot
 import com.project.readingstats.features.shelves.data.dto.UserBookDto
 import com.project.readingstats.features.shelves.domain.model.UserBook
+import kotlin.String
 
 fun DocumentSnapshot.toUserBook(): UserBook? {
     val dto = toObject(UserBookDto::class.java) ?: return null
@@ -16,6 +17,8 @@ fun DocumentSnapshot.toUserBook(): UserBook? {
         pageCount = dto.pageCount,
         pageInReading = dto.pageInReading,
         status = dto.status,
+        isbn13 = dto.isbn10,
+        isbn10 = dto.isbn13
     )
 }
 
@@ -27,5 +30,7 @@ fun UserBook.toDto() = UserBookDto(
     categories = categories,
     pageCount = pageCount,
     pageInReading = pageInReading,
-    status = status
+    status = status,
+    isbn13 = isbn13,
+    isbn10 = isbn10
 )

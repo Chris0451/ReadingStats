@@ -5,29 +5,25 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoStories
-import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.DividerDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import com.project.readingstats.features.catalog.domain.model.Book
+import com.project.readingstats.features.shelves.ShelvesViewModel
+import kotlinx.coroutines.launch
 
 enum class ShelfType { TO_READ, READING, READ }
+
 private data class ShelfRowUi(
     val type: ShelfType,
     val title: String,
@@ -35,13 +31,20 @@ private data class ShelfRowUi(
     val icon: @Composable () -> Unit
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShelvesScreen(
     counts: Map<ShelfType, Int> = emptyMap(),
     modifier: Modifier = Modifier,
-    onShelfClick: (ShelfType) -> Unit = {}
+    onShelfClick: (ShelfType) -> Unit,
+    onOpenBook: (Book) -> Unit
 ) {
-    // Dati statici della lista; i testi possono essere sostituiti con string resources.
+    val vm: ShelvesViewModel = hiltViewModel()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val scanner = remember { GmsBarcodeScanning.getClient(context) }
+
     val rows = listOf(
         ShelfRowUi(
             type = ShelfType.TO_READ,
@@ -60,38 +63,64 @@ fun ShelvesScreen(
         )
     )
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            rows.forEachIndexed { index, item ->
-                ShelfRow(
-                    title = item.title,
-                    subtitle = item.subtitle,
-                    count = counts[item.type],
-                    leading = item.icon,
-                    onClick = { onShelfClick(item.type) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics {
-                            contentDescription = "${item.title} ${counts[item.type] ?: 0} elementi"
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = {
+                scanner.startScan()
+                    .addOnSuccessListener { barcode ->
+                        val raw = barcode.rawValue.orEmpty()
+                        scope.launch {
+                            val book = vm.findBookByScan(raw)
+                            if (book != null) {
+                                onOpenBook(book)
+                            } else {
+                                snackbarHostState.showSnackbar("Libro non trovato tramite ISBN")
+                            }
                         }
-                        .padding(horizontal = 12.dp)
-                )
-                if (index < rows.lastIndex) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 12.dp, end = 12.dp),
-                        thickness = DividerDefaults.Thickness,
-                        color = DividerDefaults.color
-                    ) // allinea al testo
+                    }
+                    .addOnFailureListener {
+                        scope.launch { snackbarHostState.showSnackbar("Scansione annullata o non riuscita") }
+                    }
+            }) {
+                Icon(Icons.Outlined.Add, contentDescription = "Scansiona ISBN")
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                rows.forEachIndexed { index, item ->
+                    ShelfRow(
+                        title = item.title,
+                        subtitle = item.subtitle,
+                        count = counts[item.type],
+                        leading = item.icon,
+                        onClick = { onShelfClick(item.type) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                contentDescription = "${item.title} ${counts[item.type] ?: 0} elementi"
+                            }
+                            .padding(horizontal = 12.dp)
+                    )
+                    if (index < rows.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp),
+                            thickness = DividerDefaults.Thickness,
+                            color = DividerDefaults.color
+                        )
+                    }
                 }
             }
         }
@@ -114,16 +143,13 @@ private fun ShelfRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp),
+            modifier = Modifier.size(40.dp),
             contentAlignment = Alignment.Center
         ) { leading() }
 
         Spacer(Modifier.width(12.dp))
 
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.titleMedium)
             if (!subtitle.isNullOrBlank()) {
                 Text(
@@ -135,10 +161,7 @@ private fun ShelfRow(
         }
 
         if (count != null && count >= 0) {
-            BadgedBox(badge = {
-                Badge { Text(count.toString()) }
-            }) {
-                // elemento “ancora” per il badge: teniamo uno spacer
+            BadgedBox(badge = { Badge { Text(count.toString()) } }) {
                 Spacer(Modifier.size(1.dp))
             }
         }

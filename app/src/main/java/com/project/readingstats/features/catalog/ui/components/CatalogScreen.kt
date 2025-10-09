@@ -57,7 +57,7 @@ fun CatalogScreen(
             onValueChange = vm::updateQuery,
             onSearch = vm::performSearch,
             onClear = vm::clearSearch,
-            placeholder = "Cerca titolo o ISBN...",
+            placeholder = "Cerca titolo...",
             isLoading = state.searching,
             debounceMillis = 400L,
             onDebounceChange = {q -> vm.performLiveSearch(q)}

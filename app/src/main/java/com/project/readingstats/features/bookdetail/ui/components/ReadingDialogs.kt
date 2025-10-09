@@ -82,16 +82,20 @@ fun ReadPagesDialog(
     isError: Boolean,
     supportingText: String?
 ) {
+    val typed = value.toIntOrNull()
+    val display = typed ?: previousRead
+
+    val title = when{
+        max != null && display != null -> "Pagine lette ($display/$max)"
+        max != null                   -> "Pagine lette (1..$max)"
+        else                          -> "Pagine lette"
+    }
     BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = 6.dp
         ) {
-            val title = when{
-                max != null && previousRead != null -> "Pagine lette ($previousRead/$max)"
-                max != null                   -> "Pagine lette (1..$max)"
-                else                          -> "Pagine lette"
-            }
+
             Column(
                 modifier = Modifier
                     .padding(24.dp)

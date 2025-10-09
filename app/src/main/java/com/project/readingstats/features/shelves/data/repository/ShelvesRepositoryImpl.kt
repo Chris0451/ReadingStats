@@ -95,28 +95,39 @@ class ShelvesRepositoryImpl @Inject constructor(
     override suspend fun setStatus(userBookId: String, payload: UserBook?, status: ReadingStatus) {
         val docRef = collection().document(userBookId)
         val snapshot = docRef.get().await()
+        val existing = snapshot.data ?: emptyMap<String, Any?>()
+        fun has(key: String) = existing.containsKey(key)
+
         val now = System.currentTimeMillis()
 
-        val base = mapOf(
-            "status" to status.name,
-            "updatedAt" to now
-        )
+        // base sempre scritto
+        val patch = buildMap<String, Any?> {
+            put("status", status.name)
+            put("updatedAt", now)
+            put("volumeId", userBookId)
 
-        if(snapshot.exists()){
-            docRef.update(base).await()
-        } else {
-            val createdData: MutableMap<String, Any?> = mutableMapOf(
-                "volumeId" to userBookId,
-                "title" to payload?.title.orEmpty(),
-                "thumbnail" to payload?.thumbnail,
-                "authors" to (payload?.authors ?: emptyList()),
-                "categories" to (payload?.categories ?: emptyList()),
-                "pageCount" to (payload?.pageCount), //Da assegnare il valore tramite setPageCount
-                "status" to status.name,
-                "updatedAt" to now
+            // candidati da payload: aggiunti SOLO se mancanti nel doc e il valore è non-null/non-vuoto
+            val candidates: Map<String, Any?> = mapOf(
+                "title"      to payload?.title?.ifBlank { null },
+                "thumbnail"  to payload?.thumbnail,
+                "authors"    to (payload?.authors ?: emptyList<String>()),
+                "categories" to (payload?.categories ?: emptyList<String>()),
+                "isbn13"     to payload?.isbn13,
+                "isbn10"     to payload?.isbn10
             )
-            docRef.set(createdData).await()
+
+            candidates
+                .filter { (k, v) -> !has(k) && v != null }
+                .forEach { (k, v) -> put(k, v) }
+
+            // regola speciale per pageCount: integra solo se assente/≤0 e il payload porta un valore > 0
+            val existingPageCount = (existing["pageCount"] as? Number)?.toInt() ?: 0
+            val incomingPageCount = payload?.pageCount ?: 0
+            if (incomingPageCount > 0 && existingPageCount <= 0) {
+                put("pageCount", incomingPageCount)
+            }
         }
+        docRef.set(patch, SetOptions.merge()).await()
     }
 
     override suspend fun removeBook(userBookId: String) {

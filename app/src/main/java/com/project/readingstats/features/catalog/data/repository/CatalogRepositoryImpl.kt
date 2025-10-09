@@ -13,6 +13,20 @@ class CatalogRepositoryImpl @Inject constructor(
     private val api: GoogleBooksApi
 ): CatalogRepository {
 
+    private fun VolumeInfo.extractIsbns(): Pair<String?, String?> {
+        val ids = industryIdentifiers.orEmpty()
+        val isbn13 = ids.firstOrNull { it.type.equals("ISBN_13", true) }
+            ?.identifier
+            ?.filter(Char::isDigit)
+            ?.takeIf { it.length == 13 }
+        val isbn10 = ids.firstOrNull { it.type.equals("ISBN_10", true) }
+            ?.identifier
+            ?.replace("-", "")
+            ?.uppercase()
+            ?.takeIf { it.length == 10 && it.all { ch -> ch.isDigit() || ch == 'X' } }
+        return isbn13 to isbn10
+    }
+
     private fun VolumeItem.toDomain() = Book(
         id = id,
         title = volumeInfo?.title.orEmpty(),
@@ -22,6 +36,8 @@ class CatalogRepositoryImpl @Inject constructor(
         pageCount = volumeInfo?.pageCount,
         description = volumeInfo?.description,
         thumbnail = bestThumbnailHttps(volumeInfo),
+        isbn13 = volumeInfo?.extractIsbns()?.first,
+        isbn10 = volumeInfo?.extractIsbns()?.second
     )
 
     private fun bestThumbnailHttps(info: VolumeInfo?): String?{
@@ -94,10 +110,26 @@ class CatalogRepositoryImpl @Inject constructor(
         return items.map { it.toDomain() }
     }
 
+    private val isbnQueryPattern = Regex("^\\s*isbn:\\s*[0-9Xx-]+\\s*$")
     private fun normalizeQuery(raw: String): String{
         val t = raw.trim()
-        return if (t.any(Char::isDigit)){
-            "isbn:${t.filter { it.isLetterOrDigit()}} OR $t" //Partial ISBN
-        } else t
+
+        // Se l'input è già una query ISBN valida, non toccarla
+        if (isbnQueryPattern.matches(t)) return t
+
+        // Se contiene cifre, prova ad interpretarlo come ISBN solo quando ha 10 o 13 cifre
+        val digits = t.filter(Char::isDigit)
+        return when {
+            // ISBN-13 (anche per libri italiani: 978-88..., 979-12..., ecc.)
+            digits.length == 13 && (digits.startsWith("978") || digits.startsWith("979")) ->
+                "isbn:$digits OR $t"
+
+            // ISBN-10 (possibile, ma coi soli numeri qui; l'eventuale 'X' lo gestirai quando estrai dal payload)
+            digits.length == 10 ->
+                "isbn:$digits OR $t"
+
+            // Altrimenti ricerca pura testuale (evita falsi positivi tipo "1984")
+            else -> t
+        }
     }
 }

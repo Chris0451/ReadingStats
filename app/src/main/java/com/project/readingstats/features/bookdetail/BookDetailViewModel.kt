@@ -12,11 +12,15 @@ import com.project.readingstats.features.shelves.domain.usecase.SetBookStatusUse
 import com.project.readingstats.features.shelves.domain.usecase.SetPageCountUseCase
 import com.project.readingstats.features.shelves.domain.usecase.SetPageInReadingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -34,6 +38,9 @@ class BookDetailViewModel @Inject constructor(
 ): ViewModel(){
     // Extract the volumeId from the navigation arguments
     private val volumeId: String = checkNotNull(savedStateHandle["volumeId"])
+
+    private val volumeIdFlow = MutableStateFlow<String?>(null)
+    fun bindVolume(volumeId: String){ volumeIdFlow.value = volumeId }
     // Observe the book status using the volumeId
     val status: StateFlow<ReadingStatus?> =
         observeBookStatusUseCase(volumeId).
@@ -44,24 +51,20 @@ class BookDetailViewModel @Inject constructor(
         )
 
     // Pagine totali lette dall’utente già salvate su Firestore (Int?)
+    @OptIn(ExperimentalCoroutinesApi::class)
     val savedReadPages: StateFlow<Int?> =
-        observeUserBook(volumeId)
+        volumeIdFlow.filterNotNull()
+            .flatMapLatest { observeUserBook(it) }   // Flow<UserBook?>
             .map { it?.pageInReading }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                null
-            )
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     // (facoltativo) anche il pageCount se vuoi tenerlo aggiornato
+    @OptIn(ExperimentalCoroutinesApi::class)
     val savedTotalPages: StateFlow<Int?> =
-        observeUserBook(volumeId)
+        volumeIdFlow.filterNotNull()
+            .flatMapLatest { observeUserBook(it) }
             .map { it?.pageCount }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                null
-            )
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val events: SharedFlow<String> = _events
 

@@ -12,5 +12,7 @@ data class Book(
     val categories: List<String>,
     val publishedDate: String?,
     val pageCount: Int?,
-    val description: String?
+    val description: String?,
+    val isbn13: String? = null,
+    val isbn10: String? = null
 ): Parcelable

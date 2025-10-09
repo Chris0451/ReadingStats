@@ -8,6 +8,8 @@ data class UserBook(
     val thumbnail: String?,
     val categories: List<String>,
     val pageCount: Int?,
-    val pageInReading: Int? = null,
-    val status: ReadingStatus
+    var pageInReading: Int? = null,
+    val status: ReadingStatus,
+    val isbn13: String? = null,
+    val isbn10: String? = null
 )
