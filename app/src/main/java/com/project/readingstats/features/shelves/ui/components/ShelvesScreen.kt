@@ -17,6 +17,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.shelves.ShelvesViewModel
@@ -64,6 +67,7 @@ fun ShelvesScreen(
     )
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = {
@@ -136,9 +140,13 @@ private fun ShelfRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val canInteract by rememberCanInteract()
     Row(
         modifier
-            .clickable(onClick = onClick)
+            .clickable(
+                enabled = canInteract,
+                onClick = onClick
+            )
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -166,4 +174,24 @@ private fun ShelfRow(
             }
         }
     }
+}
+
+@Composable
+private fun rememberCanInteract(): State<Boolean> {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val can = remember { mutableStateOf(false) }
+    DisposableEffect(lifecycleOwner) {
+        val obs = LifecycleEventObserver { _, e ->
+            can.value = when (e) {
+                Lifecycle.Event.ON_RESUME -> true
+                Lifecycle.Event.ON_PAUSE,
+                Lifecycle.Event.ON_STOP -> false
+
+                else -> can.value
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+    return can
 }

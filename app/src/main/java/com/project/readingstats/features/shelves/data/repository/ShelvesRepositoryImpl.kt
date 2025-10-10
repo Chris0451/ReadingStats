@@ -166,5 +166,47 @@ class ShelvesRepositoryImpl @Inject constructor(
         docRef.set(data, SetOptions.merge()).await()
     }
 
+    override suspend fun upsertStatusBook(
+        userBook: UserBook,
+        payload: UserBook?,
+        status: ReadingStatus,
+        pageCount: Int?,
+        pageInReading: Int?
+    ){
+        val docRef = collection().document(userBook.volumeId)
+        val snapshot = docRef.get().await()
+        val existing = snapshot.data ?: emptyMap<String, Any?>()
+        fun has(key: String) = existing.containsKey(key)
+
+        val now = System.currentTimeMillis()
+
+        val patch = buildMap<String, Any?> {
+            put("volumeId", userBook.volumeId)
+            put("status", status.name)
+            put("updatedAt", now)
+
+            val candidates: Map<String, Any?> = mapOf(
+                "title" to payload?.title?.ifBlank { null },
+                "thumbnail" to payload?.thumbnail,
+                "description" to payload?.description,
+                "authors" to (payload?.authors ?: emptyList<String>()),
+                "categories" to (payload?.categories ?: emptyList<String>()),
+                "isbn13" to payload?.isbn13,
+                "isbn10" to payload?.isbn10
+            )
+            candidates.filter { (k, v) -> !has(k) && v != null }.forEach { (k, v) -> put(k, v) }
+
+            val existingPageCount = (existing["pageCount"] as? Number)?.toInt() ?: 0
+            val incomingPageCount = when {
+                (pageCount ?:0) >0 -> pageCount
+                (payload?.pageCount ?:0) > 0 && existingPageCount <= 0 -> payload?.pageCount
+                else -> null
+            }
+            if (incomingPageCount != null) put("pageCount", incomingPageCount)
+
+            if (pageInReading!=null) put("pageInReading", pageInReading)
+        }
+        docRef.set(patch, SetOptions.merge()).await()
+    }
     private fun <T> List<T>?.orElseEmpty(): List<T> = this ?: emptyList()
 }

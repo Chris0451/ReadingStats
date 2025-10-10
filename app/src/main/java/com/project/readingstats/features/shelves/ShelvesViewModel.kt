@@ -23,6 +23,7 @@ data class UiShelfBook(
     val authors: List<String>,
     val categories: List<String>,
     val pageCount: Int?,
+    val description: String?,
     val pageInReading: Int? = null,
     val isbn13: String?,
     val isbn10: String?
@@ -54,6 +55,7 @@ class ShelvesViewModel @Inject constructor(
                     authors = it.authors,
                     categories = it.categories,
                     pageCount = it.pageCount,
+                    description = it.description,
                     pageInReading = it.pageInReading,
                     isbn13 = it.isbn13,
                     isbn10 = it.isbn10

@@ -16,5 +16,5 @@ interface ShelvesRepository {
     suspend fun setPageCount(userBookId: String, pageCount: Int)
     suspend fun setPageInReading(userBookId: String, pageInReading: Int)
 
-
+    suspend fun upsertStatusBook(userBook: UserBook, payload: UserBook?, status: ReadingStatus, pageCount: Int?, pageInReading: Int?)
 }

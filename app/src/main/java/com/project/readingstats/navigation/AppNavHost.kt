@@ -1,19 +1,27 @@
 package com.project.readingstats.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.core.ui.components.AppScaffold
 import com.project.readingstats.core.ui.components.BottomDest
+import com.project.readingstats.core.ui.components.HeaderComponent
 import com.project.readingstats.core.ui.components.NavBarComponent
 import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.home.ui.components.HomeScreen
@@ -98,7 +106,9 @@ fun AppNavHost(
                 }
             }
 
-            val onBack: () -> Unit = {
+            val onBack: () -> Unit = { navController.navigateUp() }
+
+            /*val onBack: () -> Unit = {
                 if (fromShelf != null) {
                     navController.popBackStack(
                         Screen.ShelfBooks.createRoute(fromShelf),
@@ -107,7 +117,7 @@ fun AppNavHost(
                 }else{
                     safeNavigateUp()
                 }
-            }
+            }*/
 
             if (routedBook != null) {
                 BookDetailScreenRoute(
@@ -142,7 +152,7 @@ fun AppNavHost(
                             categories = uiBook.categories,
                             publishedDate = null,
                             pageCount = uiBook.pageCount,
-                            description = null,
+                            description = uiBook.description,
                             isbn13 = uiBook.isbn13,
                             isbn10 = uiBook.isbn10
                         )
@@ -155,6 +165,10 @@ fun AppNavHost(
         // ---- MAIN + BottomBar (stack esterno con NavHost interno) ----
         composable(Screen.Main.route) {
             val tabsNavController = rememberNavController()
+            val backStack by tabsNavController.currentBackStackEntryAsState()
+            val isShelfBooks = backStack?.destination?.route?.startsWith(Screen.ShelfBooks.route) == true
+            val currentChildRoute = backStack?.destination?.route
+            val hideTopBar = currentChildRoute == Screen.ShelfBooks.route
 
             val onLogout: () -> Unit = {
                 FirebaseAuth.getInstance().signOut()
@@ -171,12 +185,23 @@ fun AppNavHost(
             }
 
             AppScaffold(
+                topBar = if (hideTopBar) null else { { HeaderComponent() } },
                 bottomBar = { NavBarComponent(navController = tabsNavController) }
             ) { innerPadding ->
+
+                val layoutDir = LocalLayoutDirection.current
+                val contentPadding = if (isShelfBooks) {
+                    PaddingValues(
+                        start  = innerPadding.calculateStartPadding(layoutDir),
+                        top    = 0.dp, // <-- niente spazio tra le due app bar
+                        end    = innerPadding.calculateEndPadding(layoutDir),
+                        bottom = innerPadding.calculateBottomPadding() // tieni il padding per la bottom bar
+                    )
+                } else innerPadding
                 NavHost(
                     navController = tabsNavController,
                     startDestination = BottomDest.Home.route,
-                    modifier = Modifier.padding(innerPadding)
+                    modifier = Modifier.padding(contentPadding)
                 ) {
                     composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
                     composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) }
@@ -189,12 +214,46 @@ fun AppNavHost(
                                     ShelfType.READING -> "READING"
                                     ShelfType.READ -> "READ"
                                 }
-                                navController.navigate(Screen.ShelfBooks.createRoute(status))
+                                tabsNavController.navigate(Screen.ShelfBooks.createRoute(status)){
+                                    launchSingleTop = true
+                                }
                             },
                             onOpenBook = onOpenBook
                         )
                     }
                     composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
+
+                    composable(
+                        route = Screen.ShelfBooks.route, // es: "shelf/{status}"
+                        arguments = Screen.ShelfBooks.navArgs
+                    ) { entry ->
+                        val shelfStatus = entry.arguments?.getString(Screen.ShelfBooks.ARG_STATUS) ?: "TO_READ"
+                        SelectedShelfScreen(
+
+                            onOpenBookDetail = { uiBook ->
+                                // Passa il Book al graph "root" per aprire il dettaglio
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    "book",
+                                    Book(
+                                        id = uiBook.id,
+                                        title = uiBook.title,
+                                        authors = uiBook.authors,
+                                        thumbnail = uiBook.thumbnail,
+                                        categories = uiBook.categories,
+                                        publishedDate = null,
+                                        pageCount = uiBook.pageCount,
+                                        description = uiBook.description,
+                                        isbn13 = uiBook.isbn13,
+                                        isbn10 = uiBook.isbn10
+                                    )
+                                )
+                                navController.navigate(
+                                    Screen.BookDetail.createRoute(uiBook.id, fromShelf = shelfStatus)
+                                )
+                            },
+                            onBack = { tabsNavController.popBackStack() } // torna alla lista dei tab
+                        )
+                    }
                 }
             }
         }

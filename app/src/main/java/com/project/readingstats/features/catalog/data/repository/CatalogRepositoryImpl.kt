@@ -114,21 +114,19 @@ class CatalogRepositoryImpl @Inject constructor(
     private fun normalizeQuery(raw: String): String{
         val t = raw.trim()
 
-        // Se l'input è già una query ISBN valida, non toccarla
         if (isbnQueryPattern.matches(t)) return t
 
-        // Se contiene cifre, prova ad interpretarlo come ISBN solo quando ha 10 o 13 cifre
+        // Interpreta ISBN solo quando ha 10 o 13 cifre
         val digits = t.filter(Char::isDigit)
         return when {
-            // ISBN-13 (anche per libri italiani: 978-88..., 979-12..., ecc.)
+            // ISBN-13
             digits.length == 13 && (digits.startsWith("978") || digits.startsWith("979")) ->
                 "isbn:$digits OR $t"
 
-            // ISBN-10 (possibile, ma coi soli numeri qui; l'eventuale 'X' lo gestirai quando estrai dal payload)
+            // ISBN-10
             digits.length == 10 ->
                 "isbn:$digits OR $t"
 
-            // Altrimenti ricerca pura testuale (evita falsi positivi tipo "1984")
             else -> t
         }
     }

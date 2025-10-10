@@ -9,6 +9,7 @@ data class UserBookDto(
     val authors: List<String> = emptyList(),
     val categories: List<String> = emptyList(),
     val pageCount: Int? = null,
+    val description: String? = null,
     val pageInReading: Int? = null,
     val status: ReadingStatus = ReadingStatus.TO_READ,
     val updatedAt: Long = System.currentTimeMillis(),

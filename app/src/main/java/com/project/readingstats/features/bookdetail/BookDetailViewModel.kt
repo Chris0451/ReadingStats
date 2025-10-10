@@ -11,9 +11,9 @@ import com.project.readingstats.features.shelves.domain.usecase.RemoveBookFromSh
 import com.project.readingstats.features.shelves.domain.usecase.SetBookStatusUseCase
 import com.project.readingstats.features.shelves.domain.usecase.SetPageCountUseCase
 import com.project.readingstats.features.shelves.domain.usecase.SetPageInReadingUseCase
+import com.project.readingstats.features.shelves.domain.usecase.UpsertStatusBookUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -34,23 +34,22 @@ class BookDetailViewModel @Inject constructor(
     private val removeBookFromShelfUseCase: RemoveBookFromShelfUseCase,
     private val setPageCountUseCase: SetPageCountUseCase,
     private val setPageInReadingUseCase: SetPageInReadingUseCase,
-    private val observeUserBook: ObserveUserBookUseCase
+    private val observeUserBook: ObserveUserBookUseCase,
+    private val upsertStatusBookUseCase: UpsertStatusBookUseCase
 ): ViewModel(){
     // Extract the volumeId from the navigation arguments
     private val volumeId: String = checkNotNull(savedStateHandle["volumeId"])
-
-    private val volumeIdFlow = MutableStateFlow<String?>(null)
+    private val volumeIdFlow = MutableStateFlow(savedStateHandle.get<String>("volumeId"))
     fun bindVolume(volumeId: String){ volumeIdFlow.value = volumeId }
-    // Observe the book status using the volumeId
-    val status: StateFlow<ReadingStatus?> =
-        observeBookStatusUseCase(volumeId).
-        stateIn(
-            scope = viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            null
-        )
 
-    // Pagine totali lette dall’utente già salvate su Firestore (Int?)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val status: StateFlow<ReadingStatus?> =
+        volumeIdFlow.filterNotNull()
+            .flatMapLatest { observeBookStatusUseCase(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val savedReadPages: StateFlow<Int?> =
         volumeIdFlow.filterNotNull()
@@ -74,6 +73,32 @@ class BookDetailViewModel @Inject constructor(
         ReadingStatus.READ    -> "Letti"
     }
 
+    /** Helper unico: write atomica stato + pagine (tot/lette) + metadati */
+    fun setStatusWithPages(
+        status: ReadingStatus,
+        userBook: UserBook,
+        // payload: puoi passare lo stesso userBook (dalla UI usiamo quello popolato con title/autori ecc.)
+        payload: UserBook? = userBook,
+        pagesRead: Int? = null,
+        totalPages: Int? = null
+    ) {
+        viewModelScope.launch {
+            runCatching {
+                upsertStatusBookUseCase(
+                    userBook = userBook,
+                    payload = payload,
+                    status = status,
+                    pageCount = totalPages,
+                    pageInReading = pagesRead
+                )
+            }.onSuccess {
+                _events.tryEmit("Stato aggiornato: ${label(status)}")
+            }.onFailure {
+                _events.tryEmit(it.message ?: "Errore durante il salvataggio")
+            }
+        }
+    }
+
     fun onStatusIconClick(clicked: ReadingStatus, payload: UserBook?){
         val id = volumeId
         val prev = status.value
@@ -95,6 +120,7 @@ class BookDetailViewModel @Inject constructor(
             }
         }
     }
+
 
 
 

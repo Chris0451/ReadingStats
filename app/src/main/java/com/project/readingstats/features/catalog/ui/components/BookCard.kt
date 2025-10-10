@@ -43,8 +43,10 @@ fun BookCard(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(book.thumbnail)
+                .data(book.thumbnail?.takeUnless { it.isBlank() })
                 .crossfade(true)
+                .fallback(R.drawable.ic_book)
+                .error(R.drawable.ic_book)
                 .listener(
                     onError = {_, t-> Log.e("BookCard", "Error loading image for ${book.title}", t.throwable)}
                 )

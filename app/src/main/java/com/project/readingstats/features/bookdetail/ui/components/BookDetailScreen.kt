@@ -82,6 +82,11 @@ fun BookDetailScreen(
     var readingPayload by remember { mutableStateOf<UserBook?>(null) }
 
     val scope = rememberCoroutineScope()
+
+    var totalOnlyFor by remember { mutableStateOf<ReadingStatus?>(null) }
+    var totalOnlyValue by remember { mutableStateOf("") }
+    var totalOnlyError by remember { mutableStateOf<String?>(null) }
+
     // listener eventi
     LaunchedEffect(Unit) {
         vm.events.collectLatest { msg ->
@@ -129,8 +134,10 @@ fun BookDetailScreen(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(book.thumbnail)
+                        .data(book.thumbnail?.takeUnless { it.isBlank() })
                         .crossfade(true)
+                        .fallback(R.drawable.ic_book)
+                        .error(R.drawable.ic_book)
                         .listener(onError = { _, result ->
                             Log.e("BookDetail", "Image load error for ${book.title}", result.throwable)
                         })
@@ -182,33 +189,57 @@ fun BookDetailScreen(
                                 authors = book.authors,
                                 categories = book.categories,
                                 pageCount = book.pageCount,
+                                description = book.description,
                                 pageInReading = null,
                                 status = newStatus,
                                 isbn13 = book.isbn13,
                                 isbn10 = book.isbn10
                             )
 
-                            when(newStatus){
-                                ReadingStatus.READING ->{
+                            when (newStatus) {
+                                ReadingStatus.READING -> {
                                     readingPayload = payload
-                                    readingMode = if(currentStatus != ReadingStatus.READING) ReadingFlowMode.START else ReadingFlowMode.UPDATE
+                                    readingMode = if (currentStatus != ReadingStatus.READING)
+                                        ReadingFlowMode.START else ReadingFlowMode.UPDATE
                                 }
                                 ReadingStatus.TO_READ -> {
-                                    vm.onStatusIconClick(newStatus, payload)
-                                    vm.updatePagesRead(0)
-
+                                    // toggle off: se è già TO_READ → rimuovi
+                                    if (currentStatus == ReadingStatus.TO_READ) {
+                                        vm.onStatusIconClick(ReadingStatus.TO_READ, null) // trigger rimozione legacy
+                                        return@BookStatusBar
+                                    }
+                                    // se manca il totale → mostra SOLO dialog totali
+                                    val total = savedTotal ?: book.pageCount
+                                    if (total == null || total <= 0) {
+                                        readingPayload = payload
+                                        totalOnlyFor = ReadingStatus.TO_READ
+                                        totalOnlyValue = ""
+                                        totalOnlyError = null
+                                    } else {
+                                        // write atomica: stato + pagesRead=0
+                                        vm.setStatusWithPages(ReadingStatus.TO_READ, payload, payload, pagesRead = 0, totalPages = null)
+                                    }
                                 }
                                 ReadingStatus.READ -> {
+                                    // toggle off: se è già READ → rimuovi
+                                    if (currentStatus == ReadingStatus.READ) {
+                                        vm.onStatusIconClick(ReadingStatus.READ, null) // trigger rimozione legacy
+                                        return@BookStatusBar
+                                    }
                                     val total = savedTotal ?: book.pageCount
-                                    if(total != null && total > 0){
-                                        vm.onStatusIconClick(ReadingStatus.READ, payload)
-                                        vm.updatePagesRead(total)
-                                    }else{
+                                    if (total == null || total <= 0) {
+                                        // SOLO dialog totali (poi salveremo tot = lette = n)
                                         readingPayload = payload
-                                        readingMode = ReadingFlowMode.START
+                                        totalOnlyFor = ReadingStatus.READ
+                                        totalOnlyValue = ""
+                                        totalOnlyError = null
+                                    } else {
+                                        // write atomica: stato + pagesRead = total
+                                        vm.setStatusWithPages(ReadingStatus.READ, payload, payload, pagesRead = total, totalPages = null)
                                     }
                                 }
                             }
+
                         }
                     )
                 }
@@ -242,6 +273,53 @@ fun BookDetailScreen(
                             )
                         }
                     }
+                )
+            }
+
+            if (totalOnlyFor != null && readingPayload != null) {
+                TotalPagesDialog(
+                    value = totalOnlyValue,
+                    onValue = { s ->
+                        totalOnlyValue = s.filter { it.isDigit() }
+                        val n = totalOnlyValue.toIntOrNull()
+                        totalOnlyError = when {
+                            totalOnlyValue.isBlank() -> "Inserisci un numero"
+                            n == null || n <= 0 -> "Deve essere > 0"
+                            else -> null
+                        }
+                    },
+                    onDismiss = {
+                        totalOnlyFor = null
+                        readingPayload = null
+                    },
+                    onConfirm = {
+                        val n = totalOnlyValue.toIntOrNull()
+                        if (n != null && n > 0) {
+                            when (totalOnlyFor) {
+                                ReadingStatus.TO_READ -> vm.setStatusWithPages(
+                                    status = ReadingStatus.TO_READ,
+                                    userBook = readingPayload!!,
+                                    payload = readingPayload!!,
+                                    pagesRead = 0,
+                                    totalPages = n
+                                )
+
+                                ReadingStatus.READ -> vm.setStatusWithPages(
+                                    status = ReadingStatus.READ,
+                                    userBook = readingPayload!!,
+                                    payload = readingPayload!!,
+                                    pagesRead = n,   // = totale
+                                    totalPages = n
+                                )
+
+                                else -> {}
+                            }
+                            totalOnlyFor = null
+                            readingPayload = null
+                        }
+                    },
+                    isError = totalOnlyError != null,
+                    supportingText = totalOnlyError
                 )
             }
 
@@ -418,15 +496,16 @@ private fun ReadingFlowDialogs(
                 val n = readPages.value.toIntOrNull()
                 val valid = n != null && n >= 1 && (max == null || n <= max)
                 if (valid) {
+                    val totalFromDialog = totalPages.value.toIntOrNull()?.takeIf { it > 0 } // START quando hai chiesto il totale
+                    vm.setStatusWithPages(
+                        status = ReadingStatus.READING,
+                        userBook = payload,
+                        payload = payload,
+                        pagesRead = n!!,
+                        totalPages = totalFromDialog
+                    )
                     showReadDialog.value = false
-                    if (mode == ReadingFlowMode.START) {
-                        // SOLO dopo conferma valida in START → attiva stato READING
-                        vm.onStatusIconClick(ReadingStatus.READING, payload)
-                    } else {
-                        // UPDATE: resta READING; se n == max, suggerisci di toccare "Letto"
-                        if (max != null && n == max) onReachedTotal()
-                    }
-                    vm.updatePagesRead(n!!)
+                    if (mode == ReadingFlowMode.UPDATE && max != null && n == max) onReachedTotal()
                     onClose()
                 }
             },
