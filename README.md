@@ -20,8 +20,7 @@ Il progetto integra **Firebase (Auth + Firestore)** per la gestione degli utenti
 ---
 
 ### 🔑 API Key
-Il progetto richiede una chiave API di **Google Books**.  
-Aggiungila nel file `local.properties`:
+Il progetto richiede una chiave API di **Google Books**, presente nel file `local.properties`.
 
 
 ### 🛠️ Gradle
@@ -35,10 +34,10 @@ Aggiungila nel file `local.properties`:
 
 - Registrazione/Login con Firebase Authentication  
 - Salvataggio e gestione dei dati utente su Firestore  
-- Catalogo libri basato su **Google Books API**  
-- Creazione di **scaffali personalizzati** per organizzare i libri  
-- Possibilità di lasciare recensioni e gestire lo stato di lettura  
-- Sezione **Amici** per condividere progressi di lettura  
+- Catalogo libri basato su **Google Books API**, con ricerca del titolo e scansione del codice ISBN per ricerca di un libro fisico
+- Gestione percentuale di pagine lette di libri in lettura   
+- Gestione timer personale per libri in lettura
+- Sezione **Amici** per condividere progressi di lettura
 
 ---
 
