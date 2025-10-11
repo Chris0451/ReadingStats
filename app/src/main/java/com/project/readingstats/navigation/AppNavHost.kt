@@ -1,11 +1,10 @@
 package com.project.readingstats.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,15 +16,16 @@ import com.project.readingstats.core.ui.components.NavBarComponent
 import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
 import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen
-import com.project.readingstats.features.profile.ui.components.ProfileRoot
 import com.project.readingstats.features.profile.ui.components.ProfileScreen
 import com.project.readingstats.features.profile.ui.components.ProfileViewModel
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
+import kotlinx.coroutines.launch
+
 /*
 *
 * NavHost code for navigation through screens
 * Login and register screens are handled in LoginRoute and RegistrationRoute, implemented in navigation.Routes.kt
-* Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost
+* Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost with HorizontalPager for swipe navigation
  */
 
 @Composable
@@ -36,6 +36,7 @@ fun AppNavHost(
 ) {
     val navController = rememberNavController()
 
+    // Effetto per gestire la navigazione automatica al login
     LaunchedEffect(isAuthenticated) {
         if(isAuthenticated){
             navController.navigate(Screen.Main.route) {
@@ -82,37 +83,85 @@ fun AppNavHost(
                 }
             )
         }
-        // ---- GRAFO MAIN (AppScaffold + NavBar + Tab NavHost) ----
+        // ---- GRAFO MAIN (AppScaffold + NavBar + HorizontalPager) ----
         composable(Screen.Main.route) { //Main screen route
-            val tabsNavController = rememberNavController()
+            MainScreenWithPager()
+        }
+    }
+}
 
-            val profileViewModel = ProfileViewModel(
-                firestoreUserDataSource = FirestoreUserDataSource(FirebaseFirestore.getInstance())
-            )
+@Composable
+private fun MainScreenWithPager() {
+    // Lista delle destinazioni nell'ordine in cui devono apparire nel pager
+    val bottomDestinations = remember {
+        listOf(
+            BottomDest.Books,    // Indice 0
+            BottomDest.Catalog,  // Indice 1
+            BottomDest.Home,     // Indice 2
+            BottomDest.Profile   // Indice 3
+        )
+    }
 
-            val user by profileViewModel.user.collectAsState()
+    // Stato del pager - inizia dalla Home (indice 2)
+    val pagerState = rememberPagerState(
+        initialPage = 2, // Home come pagina iniziale
+        pageCount = { bottomDestinations.size }
+    )
 
-            val onLogout: () -> Unit = { //Logout button function
-                FirebaseAuth.getInstance().signOut() //Logout from Firebase
-                navController.navigate(Screen.Login.route) { //Destination call to Login Screen after logout
-                    popUpTo(Screen.Main.route) { inclusive = true } //Remove Main screen after logout
-                    launchSingleTop = true //No Login duplication in order to avoid multiple instances of Login screen
+    // Coroutine scope per animazioni programmatiche
+    val coroutineScope = rememberCoroutineScope()
+
+    // Crea ViewModel e stato utente
+    val profileViewModel = ProfileViewModel(
+        firestoreUserDataSource = FirestoreUserDataSource(FirebaseFirestore.getInstance())
+    )
+    val user by profileViewModel.user.collectAsState()
+
+    // Funzione di logout
+    val onLogout: () -> Unit = remember {
+        {
+            FirebaseAuth.getInstance().signOut()
+            // La navigazione al login sarà gestita dal LaunchedEffect in AppNavHost
+        }
+    }
+
+    AppScaffold(
+        bottomBar = {
+            NavBarComponent(
+                selectedTabIndex = pagerState.currentPage, // Passa l'indice corrente
+                onTabSelected = { index ->
+                    // Anima verso la pagina selezionata
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(index)
+                    }
                 }
-            }
+            )
+        }
+    ) { innerPadding ->
 
-            AppScaffold(
-                bottomBar = { NavBarComponent(navController = tabsNavController) }
-            ) { innerPadding ->
-                NavHost(
-                    navController = tabsNavController,
-                    startDestination = BottomDest.Home.route,
-                    modifier = Modifier.padding(innerPadding)
-                ) {
-                    // ---- GRAPH TAB NAVHOST ----
-                    composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
-                    composable(BottomDest.Catalog.route) { CatalogScreen(onLogout = onLogout) }
-                    composable(BottomDest.Books.route) { ShelvesScreen(onLogout = onLogout) }
-                    composable(BottomDest.Profile.route) { ProfileScreen (user = user,profileViewModel = profileViewModel, onLogout = onLogout) }
+        // HorizontalPager per la navigazione con swipe
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.padding(innerPadding)
+        ) { pageIndex ->
+
+            // Mostra la schermata corrispondente alla pagina corrente
+            when (bottomDestinations[pageIndex]) {
+                BottomDest.Books -> {
+                    ShelvesScreen(onLogout = onLogout)
+                }
+                BottomDest.Catalog -> {
+                    CatalogScreen(onLogout = onLogout)
+                }
+                BottomDest.Home -> {
+                    HomeScreen(onLogout = onLogout)
+                }
+                BottomDest.Profile -> {
+                    ProfileScreen(
+                        user = user,
+                        profileViewModel = profileViewModel,
+                        onLogout = onLogout
+                    )
                 }
             }
         }

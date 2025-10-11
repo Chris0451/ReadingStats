@@ -21,12 +21,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.project.readingstats.features.auth.data.model.UserModelDto
+import com.google.firebase.auth.FirebaseAuth // <--- IMPORT NECESSARIO
 
 @Composable
 fun ProfileScreen(
     user: UserModelDto?, // L'utente corrente con i suoi dati
     profileViewModel: ProfileViewModel, // ViewModel per gestire gli aggiornamenti
-    onLogout: () -> Unit // Callback per il logout
+    onLogout: () -> Unit // Callback per il logout (reindirizzamento)
 ) {
     // Stato per gestire quale schermata mostrare
     var currentScreen by remember { mutableStateOf("profile") }
@@ -40,15 +41,12 @@ fun ProfileScreen(
     LaunchedEffect(updateResult) {
         when (updateResult) {
             "success" -> {
-                // Se l'aggiornamento è riuscito, torna alla schermata dati personali
                 currentScreen = "datiPersonali"
-                profileViewModel.clearUpdateResult() // Resetta il risultato
+                profileViewModel.clearUpdateResult()
             }
             "error_update_failed" -> {
-                // Se c'è stato un errore, puoi gestirlo qui (toast, snackbar, ecc.)
-                // Per ora torniamo semplicemente alla schermata dati personali
                 currentScreen = "datiPersonali"
-                profileViewModel.clearUpdateResult() // Resetta il risultato
+                profileViewModel.clearUpdateResult()
             }
         }
     }
@@ -57,25 +55,27 @@ fun ProfileScreen(
     when (currentScreen) {
         "profile" -> ProfileRoot(
             user = user,
-            onLogout = onLogout,
+            // MODIFICA: Logout immediato con Firebase e reindirizzamento
+            onLogout = {
+                FirebaseAuth.getInstance().signOut() // Effettua logout reale da Firebase
+                onLogout() // Richiama la callback per reindirizzare o aggiornare lo stato
+            },
             onDatiPersonali = { currentScreen = "datiPersonali" },
             onListaAmici = { currentScreen = "listaAmici" },
             onInfoSupporto = { currentScreen = "infoSupporto" },
-            onNotifiche = {}
         )
         "datiPersonali" -> DatiPersonali(
             user = user,
             onBack = { currentScreen = "profile" },
-            onEdit = { currentScreen = "modificaDati" } // Vai alla schermata di modifica
+            onEdit = { currentScreen = "modificaDati" }
         )
         "modificaDati" -> ModificaDatiPersonali(
             user = user,
             onSave = { username, name, surname, email ->
-                // Salva i nuovi dati tramite il ViewModel
                 profileViewModel.updateUserProfile(username, name, surname, email)
             },
-            onCancel = { currentScreen = "datiPersonali" }, // Torna indietro senza salvare
-            isLoading = updateLoading // Passa lo stato di caricamento
+            onCancel = { currentScreen = "datiPersonali" },
+            isLoading = updateLoading
         )
         "listaAmici" -> ListaAmici(onBack = { currentScreen = "profile" })
         "infoSupporto" -> InfoSupporto(onBack = { currentScreen = "profile" })
@@ -89,7 +89,6 @@ fun ProfileRoot(
     onDatiPersonali: () -> Unit = {}, // Callback per andare ai dati personali
     onListaAmici: () -> Unit = {}, // Callback per andare alla lista amici
     onInfoSupporto: () -> Unit = {}, // Callback per andare alle info supporto
-    onNotifiche: () -> Unit = {} // Callback per gestire le notifiche
 ) {
     Surface(
         modifier = Modifier
@@ -102,7 +101,7 @@ fun ProfileRoot(
                 .fillMaxWidth()
                 .padding(top = 32.dp)
         ) {
-            // Immagine del profilo utente
+            // Immagine profilo
             AsyncImage(
                 model = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
                 contentDescription = "Profile picture",
@@ -112,8 +111,7 @@ fun ProfileRoot(
                     .clip(CircleShape)
             )
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Card principale con le informazioni utente e i menu
+            // Card con dati utente e menu
             Card(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
@@ -121,13 +119,11 @@ fun ProfileRoot(
                     .fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Etichetta per il nome utente
                     Text(
                         text = "Nome Utente",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                     )
-                    // Nome utente dinamico - mostra "Caricamento..." se l'utente è null
                     Text(
                         text = user?.username ?: "Caricamento...",
                         style = MaterialTheme.typography.titleMedium,
@@ -136,39 +132,27 @@ fun ProfileRoot(
                     )
                     Divider()
 
-                    // Voce di menu per i dati personali
                     ProfileMenuItem(
                         icon = Icons.Default.Person,
                         title = "Dati Personali",
                         description = "Visualizza e modifica i tuoi dati personali.",
                         onClick = onDatiPersonali
                     )
-                    // Voce di menu per la lista amici
                     ProfileMenuItem(
                         icon = Icons.Default.Star,
                         title = "Lista Amici",
                         description = "Visualizza i tuoi amici.",
                         onClick = onListaAmici
                     )
-                    // Voce di menu per info e supporto
                     ProfileMenuItem(
                         icon = Icons.Default.Info,
                         title = "Info/Supporto",
                         description = "Guida e supporto.",
                         onClick = onInfoSupporto
                     )
-                    // Voce di menu per le notifiche
-                    ProfileMenuItem(
-                        icon = Icons.Default.Mail,
-                        title = "Notifiche",
-                        description = "Gestisci le notifiche.",
-                        onClick = onNotifiche
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    // Pulsante per il logout
+                    // Pulsante logout aggiornato!!
                     Button(
-                        onClick = onLogout,
+                        onClick = onLogout, // La callback effettua prima il signOut e poi aggiorna la navigazione
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
@@ -199,9 +183,8 @@ fun ProfileMenuItem(
         modifier = Modifier
             .padding(vertical = 12.dp)
             .fillMaxWidth()
-            .clickable { onClick() } // Rende la riga cliccabile
+            .clickable { onClick() }
     ) {
-        // Icona principale della voce di menu
         Icon(
             icon,
             contentDescription = title,
@@ -209,14 +192,10 @@ fun ProfileMenuItem(
             modifier = Modifier.size(24.dp)
         )
         Spacer(Modifier.width(12.dp))
-
-        // Colonna con titolo e descrizione
         Column(modifier = Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Bold)
             Text(description, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
         }
-
-        // Icona di navigazione (freccia)
         Icon(
             imageVector = Icons.Default.Info,
             contentDescription = null,

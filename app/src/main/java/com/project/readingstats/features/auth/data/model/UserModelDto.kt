@@ -6,5 +6,6 @@ data class UserModelDto(
     val surname: String = "",
     val username: String = "",
     val email: String = "",
+    val friends: List<String> = emptyList(),
     val createdAt: Long = 0L
 )
