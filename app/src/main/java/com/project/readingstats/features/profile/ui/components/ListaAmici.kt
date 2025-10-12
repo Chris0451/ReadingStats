@@ -90,13 +90,80 @@ fun ListaAmici(onBack: () -> Unit) {
                 .fillMaxSize()
                 .background(Color.White)
         ) {
-            // Componente di ricerca e tab
-            SearchAndTabs(
-                selectedTab = selectedTab,
-                searchValue = searchValue,
-                onSearchChange = { searchValue = it },
-                onTabSelected = { selectedTab = it }
-            )
+            // Card contenitore per la barra di ricerca e i filtri
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp)
+                    .padding(top = 14.dp, bottom = 8.dp),
+                elevation = CardDefaults.cardElevation(2.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                ) {
+                    // Riga contenente la barra di ricerca
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Campo di testo per la ricerca
+                        OutlinedTextField(
+                            value = searchValue,
+                            onValueChange = { searchValue = it },
+                            placeholder = { Text("Search") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = Color.LightGray,
+                                focusedBorderColor = Color.Gray,
+                                cursorColor = Color.Black,
+                                focusedPlaceholderColor = Color.DarkGray,
+                                unfocusedPlaceholderColor = Color.DarkGray,
+                                focusedLeadingIconColor = Color.DarkGray,
+                                unfocusedLeadingIconColor = Color.DarkGray,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+
+                    // ✅ AGGIORNATO: Riga contenente i chip per filtrare le diverse sezioni
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Chip per la sezione "Amici"
+                        FilterChip(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            label = { Text("Amici") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color.Black,
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFFE0E0E0),
+                                labelColor = Color.Black
+                            )
+                        )
+                        Spacer(Modifier.width(10.dp))
+
+                        // ✅ NUOVO: Chip per la sezione "Richieste"
+                        FilterChip(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            label = { Text("Richieste") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color.Black,
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFFE0E0E0),
+                                labelColor = Color.Black
+                            )
+                        )
+                        Spacer(Modifier.width(10.dp))
 
             Spacer(modifier = Modifier.height(16.dp))
 

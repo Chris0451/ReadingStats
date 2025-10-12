@@ -168,9 +168,7 @@ fun AppNavHost(
                     launchSingleTop = true
                     restoreState = false
                 }
-            )
-        }
-    ) { innerPadding ->
+            }
 
             val onOpenBook: (Book) -> Unit = { book ->
                 navController.currentBackStackEntry?.savedStateHandle?.set("book", book)
@@ -179,7 +177,9 @@ fun AppNavHost(
 
             AppScaffold(
                 topBar = if (hideTopBar) null else { { HeaderComponent() } },
-                bottomBar = { NavBarComponent(navController = tabsNavController) }
+                bottomBar = {
+                    NavBarComponent(navController = tabsNavController)
+                }
             ) { innerPadding ->
 
                 val layoutDir = LocalLayoutDirection.current
