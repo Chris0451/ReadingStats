@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,10 +22,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.project.readingstats.core.ui.components.AppScaffold
 import com.project.readingstats.core.ui.components.BottomDest
 import com.project.readingstats.core.ui.components.HeaderComponent
 import com.project.readingstats.core.ui.components.NavBarComponent
+import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
+import com.project.readingstats.features.profile.ui.components.ProfileViewModel
 import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen
@@ -30,6 +36,14 @@ import com.project.readingstats.features.profile.ui.components.ProfileScreen
 import com.project.readingstats.features.shelves.ui.components.SelectedShelfScreen
 import com.project.readingstats.features.shelves.ui.components.ShelfType
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
+import kotlinx.coroutines.launch
+
+/*
+*
+* NavHost code for navigation through screens
+* Login and register screens are handled in LoginRoute and RegistrationRoute, implemented in navigation.Routes.kt
+* Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost with HorizontalPager for swipe navigation
+ */
 
 @Composable
 fun AppNavHost(
@@ -39,6 +53,7 @@ fun AppNavHost(
 ) {
     val navController = rememberNavController()
 
+    // Effetto per gestire la navigazione automatica al login
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
             navController.navigate(Screen.Main.route) {
@@ -129,39 +144,6 @@ fun AppNavHost(
             }
         }
 
-        // ---- LISTA LIBRI SALVATI (stack esterno) ----
-        composable(
-            route = Screen.ShelfBooks.route,
-            arguments = listOf(navArgument("shelfStatus") { type = NavType.StringType })
-        ) { backStackEntry ->
-            LaunchedEffect(backStackEntry) {
-                backStackEntry.savedStateHandle.remove<Book>("book")
-            }
-            val shelfStatus = backStackEntry.arguments?.getString("shelfStatus") ?: "TO_READ"
-
-            SelectedShelfScreen(
-                onBack = { safeNavigateUp() },
-                onOpenBookDetail = { uiBook ->
-                    navController.currentBackStackEntry?.savedStateHandle?.set(
-                        "book",
-                        Book(
-                            id = uiBook.id,
-                            title = uiBook.title,
-                            authors = uiBook.authors,
-                            thumbnail = uiBook.thumbnail,
-                            categories = uiBook.categories,
-                            publishedDate = null,
-                            pageCount = uiBook.pageCount,
-                            description = uiBook.description,
-                            isbn13 = uiBook.isbn13,
-                            isbn10 = uiBook.isbn10
-                        )
-                    )
-                    navController.navigate(Screen.BookDetail.createRoute(uiBook.id, fromShelf = shelfStatus))
-                }
-            )
-        }
-
         // ---- MAIN + BottomBar (stack esterno con NavHost interno) ----
         composable(Screen.Main.route) {
             val tabsNavController = rememberNavController()
@@ -169,6 +151,15 @@ fun AppNavHost(
             val isShelfBooks = backStack?.destination?.route?.startsWith(Screen.ShelfBooks.route) == true
             val currentChildRoute = backStack?.destination?.route
             val hideTopBar = currentChildRoute == Screen.ShelfBooks.route
+          
+            // Coroutine scope per animazioni programmatiche
+            val coroutineScope = rememberCoroutineScope()
+
+            // Crea ViewModel e stato utente
+            val profileViewModel = ProfileViewModel(
+                firestoreUserDataSource = FirestoreUserDataSource(FirebaseFirestore.getInstance())
+            )
+            val user by profileViewModel.user.collectAsState()
 
             val onLogout: () -> Unit = {
                 FirebaseAuth.getInstance().signOut()
@@ -177,7 +168,9 @@ fun AppNavHost(
                     launchSingleTop = true
                     restoreState = false
                 }
-            }
+            )
+        }
+    ) { innerPadding ->
 
             val onOpenBook: (Book) -> Unit = { book ->
                 navController.currentBackStackEntry?.savedStateHandle?.set("book", book)
@@ -221,7 +214,11 @@ fun AppNavHost(
                             onOpenBook = onOpenBook
                         )
                     }
-                    composable(BottomDest.Profile.route) { ProfileScreen(onLogout = onLogout) }
+                    composable(BottomDest.Profile.route) { ProfileScreen(
+                        user = user,
+                        profileViewModel = profileViewModel,
+                        onLogout = onLogout
+                    ) }
 
                     composable(
                         route = Screen.ShelfBooks.route, // es: "shelf/{status}"

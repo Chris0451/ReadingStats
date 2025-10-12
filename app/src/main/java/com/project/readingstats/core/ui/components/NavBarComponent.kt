@@ -7,11 +7,8 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 
 sealed class BottomDest(val route: String, val label: String, val icon: ImageVector){
     data object Books   : BottomDest("books", "Scaffale", Icons.AutoMirrored.Outlined.MenuBook)
@@ -21,36 +18,28 @@ sealed class BottomDest(val route: String, val label: String, val icon: ImageVec
 }
 
 private val BottomItems = listOf(
-    BottomDest.Books,
-    BottomDest.Catalog,
-    BottomDest.Home,
-    BottomDest.Profile
+    BottomDest.Books,    // Indice 0
+    BottomDest.Catalog,  // Indice 1
+    BottomDest.Home,     // Indice 2
+    BottomDest.Profile   // Indice 3
 )
 
 @Composable
 fun NavBarComponent(
-    navController: NavController,
+    selectedTabIndex: Int, // Indice del tab selezionato (da HorizontalPager)
+    onTabSelected: (Int) -> Unit, // Callback quando un tab viene selezionato
     modifier: Modifier = Modifier
 ){
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-
     NavigationBar(
         modifier = modifier
     ) {
-        BottomItems.forEach { dest ->
-            val selected = currentRoute == dest.route
+        BottomItems.forEachIndexed { index, dest ->
+            val selected = selectedTabIndex == index
             NavigationBarItem(
                 selected = selected,
                 onClick = {
                     if(!selected){
-                        navController.navigate(dest.route){
-                            popUpTo(navController.graph.startDestinationId){
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        onTabSelected(index) // Chiama il callback con l'indice
                     }
                 },
                 icon = {
