@@ -62,6 +62,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.room.ktx)
 
     //Test
     testImplementation(libs.junit)
@@ -101,6 +103,8 @@ dependencies {
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
 
+    //Coil
     implementation(libs.coil.compose)
 
+    implementation(libs.gms.code.scanner)
 }

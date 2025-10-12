@@ -1,18 +1,16 @@
-package com.project.readingstats.features.catalog.domain.model
+package com.project.readingstats.features.shelves.domain.model
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
-
-@Parcelize
-data class Book(
+data class UserBook(
     val id: String,
+    val volumeId: String,
     val title: String,
     val authors: List<String>,
     val thumbnail: String?,
     val categories: List<String>,
-    val publishedDate: String?,
     val pageCount: Int?,
     val description: String?,
+    var pageInReading: Int? = null,
+    val status: ReadingStatus,
     val isbn13: String? = null,
     val isbn10: String? = null
-): Parcelable
+)

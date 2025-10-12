@@ -1,23 +1,40 @@
 package com.project.readingstats.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.project.readingstats.core.ui.components.AppScaffold
 import com.project.readingstats.core.ui.components.BottomDest
+import com.project.readingstats.core.ui.components.HeaderComponent
 import com.project.readingstats.core.ui.components.NavBarComponent
 import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
+import com.project.readingstats.features.profile.ui.components.ProfileViewModel
+import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen
 import com.project.readingstats.features.profile.ui.components.ProfileScreen
-import com.project.readingstats.features.profile.ui.components.ProfileViewModel
+import com.project.readingstats.features.shelves.ui.components.SelectedShelfScreen
+import com.project.readingstats.features.shelves.ui.components.ShelfType
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
 import kotlinx.coroutines.launch
 
@@ -31,17 +48,18 @@ import kotlinx.coroutines.launch
 @Composable
 fun AppNavHost(
     modifier: Modifier = Modifier,
-    start: Screen = Screen.Login, //Login screen by default if user not logged in
-    isAuthenticated: Boolean //Check if user is logged in (managed in MainActivity)
+    start: Screen = Screen.Login,
+    isAuthenticated: Boolean
 ) {
     val navController = rememberNavController()
 
     // Effetto per gestire la navigazione automatica al login
     LaunchedEffect(isAuthenticated) {
-        if(isAuthenticated){
+        if (isAuthenticated) {
             navController.navigate(Screen.Main.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
+                popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
                 launchSingleTop = true
+                restoreState = false
             }
         }
     }
@@ -51,117 +69,188 @@ fun AppNavHost(
         startDestination = if (isAuthenticated) Screen.Main.route else start.route,
         modifier = modifier
     ) {
-        // ---- GRAFO AUTH ----
-        composable(Screen.Login.route) { //Login screen route
+        // ---- AUTH ----
+        composable(Screen.Login.route) {
             LoginRoute(
-                onLoginSuccess = { //Login successful
-                    navController.navigate(Screen.Main.route) { //Destination call to Main Screen after login successful
-                        popUpTo(Screen.Login.route) { inclusive = true } //Remove login screen after login successful
-                        launchSingleTop = true //No main duplication in order to avoid multiple instances of Main screen
+                onLoginSuccess = {
+                    navController.navigate(Screen.Main.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                        launchSingleTop = true
+                        restoreState = false
                     }
                 },
-                onRegisterClick = { //Register button clicked
-                    navController.navigate(Screen.Register.route){ //Destination call to Register Screen from Login Screen
-                        launchSingleTop = true //Does not return to registration screen if users come back after multiple clicks
-                    }
+                onRegisterClick = {
+                    navController.navigate(Screen.Register.route) { launchSingleTop = true }
                 }
             )
         }
-        composable(Screen.Register.route) { //Register screen route
+        composable(Screen.Register.route) {
             RegistrationRoute(
-                onRegistered = { //Registration successful
-                    navController.navigate(Screen.Main.route) { //Destination call to Main Screen after registration successful
-                        popUpTo(Screen.Register.route) { inclusive = true } //Remove registration screen after registration successful
-                        launchSingleTop = true //No Main duplication in order to avoid multiple instances of Main screen
+                onRegistered = {
+                    navController.navigate(Screen.Main.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                        launchSingleTop = true
+                        restoreState = false
                     }
                 },
-                onLoginClick = { //Login button clicked
+                onLoginClick = {
                     navController.popBackStack()
-                    navController.navigate(Screen.Login.route){
-                        launchSingleTop = true //Does not return to login screen if users come back after multiple clicks
-                    }
+                    navController.navigate(Screen.Login.route) { launchSingleTop = true }
                 }
             )
         }
-        // ---- GRAFO MAIN (AppScaffold + NavBar + HorizontalPager) ----
-        composable(Screen.Main.route) { //Main screen route
-            MainScreenWithPager()
+
+        val safeNavigateUp: () -> Unit = { navController.navigateUp() }
+
+        // ---- DETTAGLIO LIBRO (stack esterno) ----
+        composable(
+            route = Screen.BookDetail.route,
+            arguments = listOf(navArgument("volumeId") { type = NavType.StringType }, navArgument("fromShelf") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            val fromShelf: String? = backStackEntry.arguments?.getString("fromShelf")
+            val previousHandle = navController.previousBackStackEntry?.savedStateHandle
+            val routedBook = remember(previousHandle) { previousHandle?.get<Book>("book") }
+
+            LaunchedEffect(routedBook) {
+                if (routedBook != null) {
+                    previousHandle?.remove<Book>("book")
+                }
+            }
+
+            val onBack: () -> Unit = { navController.navigateUp() }
+
+            /*val onBack: () -> Unit = {
+                if (fromShelf != null) {
+                    navController.popBackStack(
+                        Screen.ShelfBooks.createRoute(fromShelf),
+                        inclusive = false
+                    )
+                }else{
+                    safeNavigateUp()
+                }
+            }*/
+
+            if (routedBook != null) {
+                BookDetailScreenRoute(
+                    book = routedBook,
+                    onBack = onBack
+                )
+            } else {
+                onBack()
+            }
         }
-    }
-}
 
-@Composable
-private fun MainScreenWithPager() {
-    // Lista delle destinazioni nell'ordine in cui devono apparire nel pager
-    val bottomDestinations = remember {
-        listOf(
-            BottomDest.Books,    // Indice 0
-            BottomDest.Catalog,  // Indice 1
-            BottomDest.Home,     // Indice 2
-            BottomDest.Profile   // Indice 3
-        )
-    }
+        // ---- MAIN + BottomBar (stack esterno con NavHost interno) ----
+        composable(Screen.Main.route) {
+            val tabsNavController = rememberNavController()
+            val backStack by tabsNavController.currentBackStackEntryAsState()
+            val isShelfBooks = backStack?.destination?.route?.startsWith(Screen.ShelfBooks.route) == true
+            val currentChildRoute = backStack?.destination?.route
+            val hideTopBar = currentChildRoute == Screen.ShelfBooks.route
+          
+            // Coroutine scope per animazioni programmatiche
+            val coroutineScope = rememberCoroutineScope()
 
-    // Stato del pager - inizia dalla Home (indice 2)
-    val pagerState = rememberPagerState(
-        initialPage = 2, // Home come pagina iniziale
-        pageCount = { bottomDestinations.size }
-    )
+            // Crea ViewModel e stato utente
+            val profileViewModel = ProfileViewModel(
+                firestoreUserDataSource = FirestoreUserDataSource(FirebaseFirestore.getInstance())
+            )
+            val user by profileViewModel.user.collectAsState()
 
-    // Coroutine scope per animazioni programmatiche
-    val coroutineScope = rememberCoroutineScope()
-
-    // Crea ViewModel e stato utente
-    val profileViewModel = ProfileViewModel(
-        firestoreUserDataSource = FirestoreUserDataSource(FirebaseFirestore.getInstance())
-    )
-    val user by profileViewModel.user.collectAsState()
-
-    // Funzione di logout
-    val onLogout: () -> Unit = remember {
-        {
-            FirebaseAuth.getInstance().signOut()
-            // La navigazione al login sarà gestita dal LaunchedEffect in AppNavHost
-        }
-    }
-
-    AppScaffold(
-        bottomBar = {
-            NavBarComponent(
-                selectedTabIndex = pagerState.currentPage, // Passa l'indice corrente
-                onTabSelected = { index ->
-                    // Anima verso la pagina selezionata
-                    coroutineScope.launch {
-                        pagerState.animateScrollToPage(index)
-                    }
+            val onLogout: () -> Unit = {
+                FirebaseAuth.getInstance().signOut()
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                    launchSingleTop = true
+                    restoreState = false
                 }
             )
         }
     ) { innerPadding ->
 
-        // HorizontalPager per la navigazione con swipe
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.padding(innerPadding)
-        ) { pageIndex ->
+            val onOpenBook: (Book) -> Unit = { book ->
+                navController.currentBackStackEntry?.savedStateHandle?.set("book", book)
+                navController.navigate(Screen.BookDetail.createRoute(book.id))
+            }
 
-            // Mostra la schermata corrispondente alla pagina corrente
-            when (bottomDestinations[pageIndex]) {
-                BottomDest.Books -> {
-                    ShelvesScreen(onLogout = onLogout)
-                }
-                BottomDest.Catalog -> {
-                    CatalogScreen(onLogout = onLogout)
-                }
-                BottomDest.Home -> {
-                    HomeScreen(onLogout = onLogout)
-                }
-                BottomDest.Profile -> {
-                    ProfileScreen(
+            AppScaffold(
+                topBar = if (hideTopBar) null else { { HeaderComponent() } },
+                bottomBar = { NavBarComponent(navController = tabsNavController) }
+            ) { innerPadding ->
+
+                val layoutDir = LocalLayoutDirection.current
+                val contentPadding = if (isShelfBooks) {
+                    PaddingValues(
+                        start  = innerPadding.calculateStartPadding(layoutDir),
+                        top    = 0.dp, // <-- niente spazio tra le due app bar
+                        end    = innerPadding.calculateEndPadding(layoutDir),
+                        bottom = innerPadding.calculateBottomPadding() // tieni il padding per la bottom bar
+                    )
+                } else innerPadding
+                NavHost(
+                    navController = tabsNavController,
+                    startDestination = BottomDest.Home.route,
+                    modifier = Modifier.padding(contentPadding)
+                ) {
+                    composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
+                    composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) }
+                    composable(BottomDest.Books.route) {
+                        ShelvesScreen(
+                            onShelfClick = { shelfType ->
+                                navController.currentBackStackEntry?.savedStateHandle?.remove<Book>("book")
+                                val status = when (shelfType) {
+                                    ShelfType.TO_READ -> "TO_READ"
+                                    ShelfType.READING -> "READING"
+                                    ShelfType.READ -> "READ"
+                                }
+                                tabsNavController.navigate(Screen.ShelfBooks.createRoute(status)){
+                                    launchSingleTop = true
+                                }
+                            },
+                            onOpenBook = onOpenBook
+                        )
+                    }
+                    composable(BottomDest.Profile.route) { ProfileScreen(
                         user = user,
                         profileViewModel = profileViewModel,
                         onLogout = onLogout
-                    )
+                    ) }
+
+                    composable(
+                        route = Screen.ShelfBooks.route, // es: "shelf/{status}"
+                        arguments = Screen.ShelfBooks.navArgs
+                    ) { entry ->
+                        val shelfStatus = entry.arguments?.getString(Screen.ShelfBooks.ARG_STATUS) ?: "TO_READ"
+                        SelectedShelfScreen(
+
+                            onOpenBookDetail = { uiBook ->
+                                // Passa il Book al graph "root" per aprire il dettaglio
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    "book",
+                                    Book(
+                                        id = uiBook.id,
+                                        title = uiBook.title,
+                                        authors = uiBook.authors,
+                                        thumbnail = uiBook.thumbnail,
+                                        categories = uiBook.categories,
+                                        publishedDate = null,
+                                        pageCount = uiBook.pageCount,
+                                        description = uiBook.description,
+                                        isbn13 = uiBook.isbn13,
+                                        isbn10 = uiBook.isbn10
+                                    )
+                                )
+                                navController.navigate(
+                                    Screen.BookDetail.createRoute(uiBook.id, fromShelf = shelfStatus)
+                                )
+                            },
+                            onBack = { tabsNavController.popBackStack() } // torna alla lista dei tab
+                        )
+                    }
                 }
             }
         }

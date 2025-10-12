@@ -7,11 +7,11 @@ import androidx.compose.runtime.Composable
 @Composable
 fun AppScaffold(
     bottomBar: @Composable () -> Unit,
-    topBar: @Composable () -> Unit = { HeaderComponent()},
+    topBar: (@Composable () -> Unit)? = { HeaderComponent()},
     content: @Composable (PaddingValues) -> Unit
 ){
     Scaffold(
-        topBar = topBar,
+        topBar = { topBar?.invoke() },
         bottomBar = bottomBar,
         content = content
     )

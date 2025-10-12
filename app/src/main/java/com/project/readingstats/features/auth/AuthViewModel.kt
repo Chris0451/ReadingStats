@@ -1,5 +1,6 @@
-package com.project.readingstats.features.auth.ui.components
+package com.project.readingstats.features.auth
 
+import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.project.readingstats.features.auth.domain.repository.LoginResult
@@ -31,7 +32,7 @@ data class RegistrationFormState(
         get() = name.isNotBlank() &&
                 surname.isNotBlank() &&
                 username.length >= 4 &&
-                android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() &&
+                Patterns.EMAIL_ADDRESS.matcher(email).matches() &&
                 password.length >= 6 &&
                 password == confirmPassword &&
                 (usernameAvailable == true)
@@ -45,7 +46,7 @@ data class LoginFormState(
     val success: Boolean = false
 ){
     val canSubmit: Boolean
-        get() = android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() &&
+        get() = Patterns.EMAIL_ADDRESS.matcher(email).matches() &&
                 password.length >= 6
 }
 @HiltViewModel
