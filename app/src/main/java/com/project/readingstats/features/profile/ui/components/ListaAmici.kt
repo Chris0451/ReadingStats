@@ -178,7 +178,7 @@ fun ListaAmici(onBack: () -> Unit) {
                             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
+                                .height(60.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedBorderColor = Color.LightGray,
                                 focusedBorderColor = Color.Gray,
