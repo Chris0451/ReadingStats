@@ -1,5 +1,6 @@
 package com.project.readingstats.navigation
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -42,6 +43,7 @@ import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
 * Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost with HorizontalPager for swipe navigation
  */
 
+@SuppressLint("ViewModelConstructorInComposable")
 @Composable
 fun AppNavHost(
     modifier: Modifier = Modifier,
@@ -193,7 +195,7 @@ fun AppNavHost(
                     startDestination = BottomDest.Home.route,
                     modifier = Modifier.padding(contentPadding)
                 ) {
-                    composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
+                    composable(BottomDest.Home.route) { HomeScreen() }
                     composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) }
                     composable(BottomDest.Books.route) {
                         ShelvesScreen(

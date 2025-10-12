@@ -12,6 +12,7 @@ data class UserBookDto(
     val description: String? = null,
     val pageInReading: Int? = null,
     val status: ReadingStatus = ReadingStatus.TO_READ,
+    val readTime: Long? = null,
     val updatedAt: Long = System.currentTimeMillis(),
     val isbn10: String? = null,
     val isbn13: String? = null

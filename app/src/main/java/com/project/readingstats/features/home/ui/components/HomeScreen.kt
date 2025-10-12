@@ -1,7 +1,9 @@
 package com.project.readingstats.features.home.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,16 +23,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import coil.compose.AsyncImage
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun HomeScreen(
-    onLogout: () -> Unit = {}, // Callback per il logout (se necessario)
     onStartReading: () -> Unit = {} // Callback per avviare il timer di lettura
 ) {
     // Stati per i dati del libro (modificabili in futuro)
     var bookTitle by remember { mutableStateOf("L'arte di essere felici e vivere a lungo") }
-    var bookCategory by remember { mutableStateOf("Filosofia") }
     var bookImageUrl by remember { mutableStateOf("") } // URL immagine del libro
-    var isBookLiked by remember { mutableStateOf(false) } // Stato per il cuore
 
     // Ottieni dimensioni schermo per responsività
     val configuration = LocalConfiguration.current
@@ -42,18 +42,30 @@ fun HomeScreen(
     val bookImageWidth = min(screenWidth * 0.5f, 200.dp)
     val bookImageHeight = bookImageWidth * 1.4f // Mantiene proporzione libro
 
-    // Stato dello scroll per permettere scroll fluido
-    val scrollState = rememberScrollState()
-
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
-            .verticalScroll(scrollState) // ✅ SCROLL VERTICALE ABILITATO
             .padding(horizontal = cardPadding),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        // Spaziatura responsive dall'alto
+        item {
+
+        }
+    }
+}
+
+// Composable di preview per testare il layout
+@Composable
+fun HomeScreenPreview() {
+    MaterialTheme {
+        HomeScreen()
+    }
+}
+
+/*
+* // Spaziatura responsive dall'alto
         Spacer(modifier = Modifier.height((screenHeight * 0.02f).coerceIn(16.dp, 32.dp)))
 
         // Card contenitore principale del libro
@@ -74,40 +86,6 @@ fun HomeScreen(
                     ),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header con icone cuore e menu
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Icona cuore per aggiungere ai preferiti
-                    IconButton(
-                        onClick = { isBookLiked = !isBookLiked }
-                    ) {
-                        Icon(
-                            Icons.Default.Favorite,
-                            contentDescription = "Aggiungi ai preferiti",
-                            tint = if (isBookLiked) Color.Red else Color.Gray,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    // Icona menu con tre puntini
-                    IconButton(
-                        onClick = { /* Azione menu */ }
-                    ) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "Menu opzioni",
-                            tint = Color.Gray,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-
-                // Spaziatura responsive
-                Spacer(modifier = Modifier.height((screenHeight * 0.02f).coerceIn(12.dp, 20.dp)))
-
                 // Immagine di copertina del libro - dimensioni responsive
                 Card(
                     modifier = Modifier
@@ -193,69 +171,33 @@ fun HomeScreen(
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
 
-                // Spaziatura responsive
-                Spacer(modifier = Modifier.height((screenHeight * 0.015f).coerceIn(8.dp, 16.dp)))
+                // Spaziatura tra card e pulsante
+                Spacer(modifier = Modifier.height((screenHeight * 0.025f).coerceIn(16.dp, 24.dp)))
 
-                // Categoria del libro (chip) - dimensioni responsive
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFFDEB887), // Colore marrone chiaro come nell'immagine
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                // Pulsante per iniziare a leggere - sempre visibile
+                Button(
+                    onClick = onStartReading,
+                    modifier = Modifier
+                        .height((screenHeight * 0.06f).coerceIn(48.dp, 60.dp)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1976D2) // Blu come nell'immagine
+                    ),
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Text(
-                        text = bookCategory,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = MaterialTheme.typography.bodyMedium.fontSize *
-                                    (screenWidth.value / 400f).coerceIn(0.8f, 1.1f)
-                        ),
-                        fontWeight = FontWeight.Medium,
+                        text = "🔄 Riprendi Lettura",
                         color = Color.White,
-                        modifier = Modifier.padding(
-                            horizontal = (screenWidth * 0.04f).coerceIn(12.dp, 20.dp),
-                            vertical = 8.dp
-                        )
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize *
+                                    (screenWidth.value / 400f).coerceIn(0.9f, 1.1f)
+                        ),
+                        fontWeight = FontWeight.Medium
                     )
                 }
-
-                // Spaziatura finale responsive
-                Spacer(modifier = Modifier.height((screenHeight * 0.025f).coerceIn(16.dp, 24.dp)))
             }
-        }
 
-        // Spaziatura tra card e pulsante
-        Spacer(modifier = Modifier.height((screenHeight * 0.025f).coerceIn(16.dp, 24.dp)))
 
-        // Pulsante per iniziare a leggere - sempre visibile
-        Button(
-            onClick = onStartReading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height((screenHeight * 0.06f).coerceIn(48.dp, 60.dp)),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1976D2) // Blu come nell'immagine
-            ),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                text = "🔄 Riprendi Lettura",
-                color = Color.White,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = MaterialTheme.typography.bodyLarge.fontSize *
-                            (screenWidth.value / 400f).coerceIn(0.9f, 1.1f)
-                ),
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        // Spaziatura finale per evitare che il contenuto tocchi il bottom
-        Spacer(modifier = Modifier.height((screenHeight * 0.03f).coerceIn(24.dp, 40.dp)))
-    }
-}
-
-// Composable di preview per testare il layout
-@Composable
-fun HomeScreenPreview() {
-    MaterialTheme {
-        HomeScreen()
-    }
-}
+            // Spaziatura finale per evitare che il contenuto tocchi il bottom
+            Spacer(modifier = Modifier.height((screenHeight * 0.03f).coerceIn(24.dp, 40.dp)))
+*
+* */
