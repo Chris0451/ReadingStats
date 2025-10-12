@@ -7,8 +7,11 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 sealed class BottomDest(val route: String, val label: String, val icon: ImageVector){
     data object Books   : BottomDest("books", "Scaffale", Icons.AutoMirrored.Outlined.MenuBook)
@@ -26,20 +29,28 @@ private val BottomItems = listOf(
 
 @Composable
 fun NavBarComponent(
-    selectedTabIndex: Int, // Indice del tab selezionato (da HorizontalPager)
-    onTabSelected: (Int) -> Unit, // Callback quando un tab viene selezionato
+    navController: NavController,
     modifier: Modifier = Modifier
 ){
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+
     NavigationBar(
         modifier = modifier
     ) {
-        BottomItems.forEachIndexed { index, dest ->
-            val selected = selectedTabIndex == index
+        BottomItems.forEach { dest ->
+            val selected = currentRoute == dest.route
             NavigationBarItem(
                 selected = selected,
                 onClick = {
                     if(!selected){
-                        onTabSelected(index) // Chiama il callback con l'indice
+                        navController.navigate(dest.route){
+                            popUpTo(navController.graph.startDestinationId){
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 },
                 icon = {
