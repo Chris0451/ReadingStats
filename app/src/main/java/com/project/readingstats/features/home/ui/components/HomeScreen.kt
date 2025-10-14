@@ -1,203 +1,175 @@
 package com.project.readingstats.features.home.ui.components
 
-import android.annotation.SuppressLint
-import androidx.compose.foundation.background
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.min
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.project.readingstats.R
+import com.project.readingstats.features.home.HomeViewModel
+import com.project.readingstats.features.home.domain.model.HomeItemState
+import com.project.readingstats.features.shelves.ui.components.ReadingProgressCircle
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
-@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun HomeScreen(
-    onStartReading: () -> Unit = {} // Callback per avviare il timer di lettura
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
-    // Stati per i dati del libro (modificabili in futuro)
-    var bookTitle by remember { mutableStateOf("L'arte di essere felici e vivere a lungo") }
-    var bookImageUrl by remember { mutableStateOf("") } // URL immagine del libro
+    val state by viewModel.uiState.collectAsState()
 
-    // Ottieni dimensioni schermo per responsività
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-    val screenWidth = configuration.screenWidthDp.dp
+    if (state.items.isEmpty()) {
+        // placeholder quando non ci sono libri in lettura
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Nessun libro in lettura")
+        }
+        return
+    }
 
-    // Calcola dimensioni responsive
-    val cardPadding = (screenWidth * 0.04f).coerceIn(12.dp, 24.dp)
-    val bookImageWidth = min(screenWidth * 0.5f, 200.dp)
-    val bookImageHeight = bookImageWidth * 1.4f // Mantiene proporzione libro
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(state.items, key = { it.book.id }) { item ->
+                ReadingCard(
+                    item = item,
+                    onStart = { viewModel.onStart(item.book) },
+                    onStop = { viewModel.onStop(item.book) },
+                )
+            }
+        }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-            .padding(horizontal = cardPadding),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        item {
-
+        // dialog aggiornamento pagine alla fine della sessione
+        state.pagesDialog?.let { dlg ->
+            PagesDialog(
+                book = dlg.book,
+                initial = dlg.currentRead,
+                onDismiss = { viewModel.closeDialog() },
+                onConfirm = { pages -> viewModel.confirmPages(pages) }
+            )
         }
     }
 }
 
-// Composable di preview per testare il layout
 @Composable
-fun HomeScreenPreview() {
-    MaterialTheme {
-        HomeScreen()
-    }
-}
-
-/*
-* // Spaziatura responsive dall'alto
-        Spacer(modifier = Modifier.height((screenHeight * 0.02f).coerceIn(16.dp, 32.dp)))
-
-        // Card contenitore principale del libro
-        Card(
-            modifier = Modifier
+private fun ReadingCard(
+    item: HomeItemState,
+    onStart: () -> Unit,
+    onStop: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors()
+    ) {
+        Column(
+            Modifier
                 .fillMaxWidth()
-                .wrapContentHeight(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
+            // Copertina
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(item.book.thumbnail?.takeUnless { it.isBlank() })
+                    .crossfade(true)
+                    .error(R.drawable.ic_book)
+                    .fallback(R.drawable.ic_book)
+                    .listener(onError = { _, r -> Log.e("Home", "cover error", r.throwable) })
+                    .build(),
+                contentDescription = item.book.title,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = (screenWidth * 0.05f).coerceIn(16.dp, 24.dp),
-                        vertical = (screenHeight * 0.025f).coerceIn(16.dp, 24.dp)
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .width(160.dp)
+                    .height(220.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Titolo
+            Text(
+                text = item.book.title,
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Progresso lettura + tempo totale
+            val pages = item.book.pageCount ?: 0
+            val read = item.book.pageInReading ?: 0
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Immagine di copertina del libro - dimensioni responsive
-                Card(
-                    modifier = Modifier
-                        .width(bookImageWidth)
-                        .height(bookImageHeight),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                ) {
-                    if (bookImageUrl.isNotEmpty()) {
-                        // Se c'è un URL immagine, carica l'immagine
-                        AsyncImage(
-                            model = bookImageUrl,
-                            contentDescription = "Copertina libro",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        // Placeholder per l'immagine del libro (simula la copertina nell'immagine)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFFF0E6D2)), // Colore beige come nell'immagine
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.SpaceEvenly,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(12.dp)
-                            ) {
-                                // Decorazione blu in alto (simula pattern dell'immagine)
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(bookImageHeight * 0.25f) // 25% dell'altezza
-                                        .background(Color(0xFF87CEEB))
-                                )
-
-                                // Spaziatura adattiva
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // Testo simulato sulla copertina - dimensioni responsive
-                                Text(
-                                    text = "SENECA",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontSize = MaterialTheme.typography.titleMedium.fontSize *
-                                                (bookImageWidth.value / 200f).coerceIn(0.8f, 1.2f)
-                                    ),
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF8B4513),
-                                    textAlign = TextAlign.Center
-                                )
-
-                                Text(
-                                    text = "L'arte di essere felici\ne vivere a lungo",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = MaterialTheme.typography.bodySmall.fontSize *
-                                                (bookImageWidth.value / 200f).coerceIn(0.7f, 1.1f)
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    color = Color(0xFF8B4513),
-                                    modifier = Modifier.padding(horizontal = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Spaziatura responsive
-                Spacer(modifier = Modifier.height((screenHeight * 0.03f).coerceIn(16.dp, 28.dp)))
-
-                // Titolo del libro - dimensioni responsive
-                Text(
-                    text = bookTitle,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontSize = MaterialTheme.typography.headlineSmall.fontSize *
-                                (screenWidth.value / 400f).coerceIn(0.8f, 1.2f)
-                    ),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    color = Color(0xFF212121),
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                val progress = if (pages > 0) read.toFloat() / pages else 0f
+                ReadingProgressCircle(
+                    read = item.book.pageInReading,
+                    total = item.book.pageCount,
+                    size = 56.dp,
+                    stroke = 6.dp
                 )
-
-                // Spaziatura tra card e pulsante
-                Spacer(modifier = Modifier.height((screenHeight * 0.025f).coerceIn(16.dp, 24.dp)))
-
-                // Pulsante per iniziare a leggere - sempre visibile
-                Button(
-                    onClick = onStartReading,
-                    modifier = Modifier
-                        .height((screenHeight * 0.06f).coerceIn(48.dp, 60.dp)),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1976D2) // Blu come nell'immagine
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
+                Column {
                     Text(
-                        text = "🔄 Riprendi Lettura",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = MaterialTheme.typography.bodyLarge.fontSize *
-                                    (screenWidth.value / 400f).coerceIn(0.9f, 1.1f)
-                        ),
-                        fontWeight = FontWeight.Medium
+                        text = if (pages > 0) "$read pagine lette su $pages" else "$read pagine lette",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    val totalSeconds = item.totalWithSession
+                    Text(
+                        text = "Tempo totale: ${formatSeconds(totalSeconds)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
+            Spacer(Modifier.height(16.dp))
 
-            // Spaziatura finale per evitare che il contenuto tocchi il bottom
-            Spacer(modifier = Modifier.height((screenHeight * 0.03f).coerceIn(24.dp, 40.dp)))
-*
-* */
+            // Pulsante timer
+            val btnText = if (item.isRunning) "⏹️ Termina lettura" else "▶️ Riprendi lettura"
+            Button(
+                onClick = if (item.isRunning) onStop else onStart,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(btnText)
+            }
+
+            // Timer live sotto al bottone quando in corso
+            if (item.isRunning) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Sessione corrente: ${formatSeconds(item.sessionElapsedSec)}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+private fun formatSeconds(total: Long): String {
+    val s = total.seconds
+    val hh = s.inWholeHours
+    val mm = (s - hh.hours).inWholeMinutes
+    val ss = (s - hh.hours - mm.minutes).inWholeSeconds
+    return "%02d:%02d:%02d".format(hh, mm, ss)
+}

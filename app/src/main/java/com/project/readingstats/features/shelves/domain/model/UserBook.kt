@@ -11,6 +11,7 @@ data class UserBook(
     val description: String?,
     val pageInReading: Int? = null,
     val status: ReadingStatus,
+    val totalReadSeconds: Long? = null,
     val isbn13: String? = null,
     val isbn10: String? = null
 )

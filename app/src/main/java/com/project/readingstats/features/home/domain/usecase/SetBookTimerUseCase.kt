@@ -6,5 +6,7 @@ import javax.inject.Inject
 class SetBookTimerUseCase @Inject constructor(
     private val homeRepository: HomeRepository
 ){
-    suspend operator fun invoke(userBookId: String, duration: Long) = homeRepository.setBookTimer(userBookId, duration)
+    suspend operator fun invoke(bookId: String, startMillis: Long, endMillis: Long) {
+        homeRepository.addReadingSession(bookId, startMillis, endMillis)
+    }
 }

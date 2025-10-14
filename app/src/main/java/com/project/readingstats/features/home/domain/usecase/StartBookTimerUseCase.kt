@@ -6,5 +6,5 @@ import javax.inject.Inject
 class StartBookTimerUseCase @Inject constructor(
     private val homeRepository: HomeRepository
 ){
-    suspend operator fun invoke(userBookId: String) = homeRepository.startBookTimer(userBookId)
+    operator fun invoke(): Long = System.currentTimeMillis()
 }
