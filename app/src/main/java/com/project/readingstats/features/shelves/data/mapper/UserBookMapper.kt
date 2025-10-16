@@ -18,6 +18,7 @@ fun DocumentSnapshot.toUserBook(): UserBook? {
         description = dto.description,
         pageInReading = dto.pageInReading,
         status = dto.status,
+        totalReadSeconds = dto.totalReadSeconds,
         isbn13 = dto.isbn10,
         isbn10 = dto.isbn13
     )

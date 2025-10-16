@@ -2,8 +2,10 @@ package com.project.readingstats.features.profile.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
@@ -28,11 +30,12 @@ fun DatiPersonali(
     Column(
         Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA)),
+            .background(Color(0xFFF8F9FA))
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         TopAppBar(
-            title = { Text("") },
+            title = { Text("Dati personali") },
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Torna indietro")

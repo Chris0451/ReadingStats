@@ -1,5 +1,6 @@
 package com.project.readingstats.navigation
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -30,6 +31,14 @@ import com.project.readingstats.features.shelves.ui.components.SelectedShelfScre
 import com.project.readingstats.features.shelves.ui.components.ShelfType
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
 
+/*
+*
+* NavHost code for navigation through screens
+* Login and register screens are handled in LoginRoute and RegistrationRoute, implemented in navigation.Routes.kt
+* Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost with HorizontalPager for swipe navigation
+ */
+
+@SuppressLint("ViewModelConstructorInComposable")
 @Composable
 fun AppNavHost(
     modifier: Modifier = Modifier,
@@ -194,14 +203,8 @@ fun AppNavHost(
                     startDestination = BottomDest.Home.route,
                     modifier = Modifier.padding(contentPadding)
                 ) {
-                    composable(BottomDest.Home.route) {
-                        HomeScreen(onLogout = onLogout)
-                    }
-
-                    composable(BottomDest.Catalog.route) {
-                        CatalogScreen(onOpenBook = onOpenBook)
-                    }
-
+                    composable(BottomDest.Home.route) { HomeScreen() }
+                    composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) }
                     composable(BottomDest.Books.route) {
                         ShelvesScreen(
                             onShelfClick = { shelfType ->

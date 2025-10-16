@@ -9,8 +9,9 @@ data class UserBook(
     val categories: List<String>,
     val pageCount: Int?,
     val description: String?,
-    var pageInReading: Int? = null,
+    val pageInReading: Int? = null,
     val status: ReadingStatus,
+    val totalReadSeconds: Long? = null,
     val isbn13: String? = null,
     val isbn10: String? = null
 )
