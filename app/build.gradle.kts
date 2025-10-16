@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.parcelize)
+    id("kotlin-parcelize")
+
 }
 
 android {
