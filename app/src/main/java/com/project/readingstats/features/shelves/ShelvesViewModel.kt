@@ -37,7 +37,7 @@ class ShelvesViewModel @Inject constructor(
 ): ViewModel(){
     private val status: ReadingStatus =
         runCatching { ReadingStatus.valueOf(checkNotNull(savedStateHandle["shelfStatus"]))}
-            .getOrElse { ReadingStatus.TO_READ }
+            .getOrElse { ReadingStatus.READ }
 
     val title: String = when (status){
         ReadingStatus.TO_READ -> "Da leggere"

@@ -212,7 +212,7 @@ fun AppNavHost(
                                 val status = when (shelfType) {
                                     ShelfType.TO_READ -> "TO_READ"
                                     ShelfType.READING -> "READING"
-                                    ShelfType.READ -> "read"
+                                    ShelfType.READ -> "READ"
                                 }
                                 tabsNavController.navigate(Screen.ShelfBooks.createRoute(status)) {
                                     launchSingleTop = true
@@ -237,7 +237,7 @@ fun AppNavHost(
                         route = Screen.ShelfBooks.route,
                         arguments = Screen.ShelfBooks.navArgs
                     ) { entry ->
-                        val shelfStatus = entry.arguments?.getString(Screen.ShelfBooks.ARG_STATUS) ?: "TO_READ"
+                        val shelfStatus = entry.arguments?.getString(Screen.ShelfBooks.ARG_STATUS)
                         SelectedShelfScreen(
                             onOpenBookDetail = { uiBook ->
                                 navController.currentBackStackEntry?.savedStateHandle?.set(
