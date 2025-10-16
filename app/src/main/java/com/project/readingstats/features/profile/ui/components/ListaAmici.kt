@@ -1,5 +1,6 @@
 package com.project.readingstats.features.profile.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,7 +15,10 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListaAmici(onBack: () -> Unit) {
+fun ListaAmici(
+    onBack: () -> Unit,
+    onNavigateToFriendDetails: (Friend) -> Unit = {} // ===== NUOVO PARAMETRO =====
+) {
     // Stati della UI
     var selectedTab by remember { mutableStateOf(0) }
     var searchValue by remember { mutableStateOf("") }
@@ -25,11 +29,13 @@ fun ListaAmici(onBack: () -> Unit) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // Gestione tasto back hardware
+    BackHandler { onBack() }
+
     // Caricamento dati quando cambia il tab
     LaunchedEffect(selectedTab) {
         isLoading = true
         errorMessage = null
-
         when (selectedTab) {
             0 -> {
                 // Carica amici
@@ -129,9 +135,7 @@ fun ListaAmici(onBack: () -> Unit) {
                                             onAccept = { acceptedRequest ->
                                                 FriendsManager.acceptFriendRequest(acceptedRequest) { success, error ->
                                                     if (success) {
-                                                        // Rimuovi dalla lista delle richieste
                                                         requestsList = requestsList.filter { it.id != acceptedRequest.id }
-                                                        // Ricarica la lista degli amici
                                                         FriendsManager.loadFriends { friends, _ ->
                                                             friendsList = friends
                                                         }
@@ -179,7 +183,6 @@ fun ListaAmici(onBack: () -> Unit) {
                                             onSendRequest = { friendToAdd ->
                                                 FriendsManager.sendFriendRequest(friendToAdd.uid) { success, error ->
                                                     if (success) {
-                                                        // Aggiungi alla lista delle richieste inviate
                                                         sentRequestsList = sentRequestsList + friendToAdd.uid
                                                     } else {
                                                         errorMessage = error
@@ -187,8 +190,10 @@ fun ListaAmici(onBack: () -> Unit) {
                                                 }
                                             },
                                             onFriendClick = { clickedFriend ->
-                                                // Gestione click su amico (opzionale)
-                                                // Puoi implementare navigazione al profilo
+                                                // ===== MODIFICA: USA CALLBACK NAVIGAZIONE =====
+                                                if (selectedTab == 0) { // Solo per gli amici effettivi
+                                                    onNavigateToFriendDetails(clickedFriend)
+                                                }
                                             }
                                         )
                                     }
@@ -199,5 +204,41 @@ fun ListaAmici(onBack: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+// Extension function per il filtro di ricerca
+private fun Friend.matches(searchQuery: String): Boolean {
+    if (searchQuery.isBlank()) return true
+    val query = searchQuery.lowercase()
+    return username.lowercase().contains(query) ||
+            fullName.lowercase().contains(query) ||
+            email.lowercase().contains(query)
+}
+
+@Composable
+private fun LoadingIndicator() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun CenteredMessage(
+    message: String,
+    color: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            color = color
+        )
     }
 }

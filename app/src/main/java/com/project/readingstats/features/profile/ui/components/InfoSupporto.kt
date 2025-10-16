@@ -1,6 +1,5 @@
 package com.project.readingstats.features.profile.ui.components
 
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.material.icons.Icons
@@ -23,14 +22,18 @@ fun InfoSupporto(onBack: () -> Unit) {
                 }
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
         Column(
-            Modifier
-                .padding(padding)
-                .fillMaxSize(),
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .padding(16.dp),
             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
         ) {
-            Text("Schermata Info/Supporto", Modifier.padding(top = 40.dp))
+            Text(
+                "Schermata Info/Supporto",
+                modifier = Modifier.padding(top = 40.dp)
+            )
         }
     }
 }

@@ -6,19 +6,13 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavType
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.project.readingstats.core.ui.components.AppScaffold
@@ -27,6 +21,7 @@ import com.project.readingstats.core.ui.components.HeaderComponent
 import com.project.readingstats.core.ui.components.NavBarComponent
 import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
 import com.project.readingstats.features.profile.ui.components.ProfileViewModel
+import com.project.readingstats.features.profile.ui.components.Friend
 import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen
@@ -34,13 +29,6 @@ import com.project.readingstats.features.profile.ui.components.ProfileScreen
 import com.project.readingstats.features.shelves.ui.components.SelectedShelfScreen
 import com.project.readingstats.features.shelves.ui.components.ShelfType
 import com.project.readingstats.features.shelves.ui.components.ShelvesScreen
-
-/*
-*
-* NavHost code for navigation through screens
-* Login and register screens are handled in LoginRoute and RegistrationRoute, implemented in navigation.Routes.kt
-* Main screen (AppScaffold + NavBar + Tab NavHost) is handled in AppNavHost with HorizontalPager for swipe navigation
- */
 
 @Composable
 fun AppNavHost(
@@ -50,7 +38,6 @@ fun AppNavHost(
 ) {
     val navController = rememberNavController()
 
-    // Effetto per gestire la navigazione automatica al login
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
             navController.navigate(Screen.Main.route) {
@@ -66,7 +53,6 @@ fun AppNavHost(
         startDestination = if (isAuthenticated) Screen.Main.route else start.route,
         modifier = modifier
     ) {
-        // ---- AUTH ----
         composable(Screen.Login.route) {
             LoginRoute(
                 onLoginSuccess = {
@@ -81,6 +67,7 @@ fun AppNavHost(
                 }
             )
         }
+
         composable(Screen.Register.route) {
             RegistrationRoute(
                 onRegistered = {
@@ -97,18 +84,10 @@ fun AppNavHost(
             )
         }
 
-        val safeNavigateUp: () -> Unit = { navController.navigateUp() }
-
-        // ---- DETTAGLIO LIBRO (stack esterno) ----
         composable(
             route = Screen.BookDetail.route,
-            arguments = listOf(navArgument("volumeId") { type = NavType.StringType }, navArgument("fromShelf") {
-                type = NavType.StringType
-                nullable = true
-                defaultValue = null
-            })
+            arguments = Screen.BookDetail.navArgs
         ) { backStackEntry ->
-            val fromShelf: String? = backStackEntry.arguments?.getString("fromShelf")
             val previousHandle = navController.previousBackStackEntry?.savedStateHandle
             val routedBook = remember(previousHandle) { previousHandle?.get<Book>("book") }
 
@@ -120,20 +99,10 @@ fun AppNavHost(
 
             val onBack: () -> Unit = { navController.navigateUp() }
 
-            /*val onBack: () -> Unit = {
-                if (fromShelf != null) {
-                    navController.popBackStack(
-                        Screen.ShelfBooks.createRoute(fromShelf),
-                        inclusive = false
-                    )
-                }else{
-                    safeNavigateUp()
-                }
-            }*/
-
             if (routedBook != null) {
-                BookDetailScreenRoute(
+                BookDetailRoute(
                     book = routedBook,
+                    fromShelf = backStackEntry.arguments?.getString("fromShelf") != null,
                     onBack = onBack
                 )
             } else {
@@ -141,21 +110,53 @@ fun AppNavHost(
             }
         }
 
-        // ---- MAIN + BottomBar (stack esterno con NavHost interno) ----
+        composable(Screen.FriendsList.route) {
+            FriendsListRoute(
+                onBack = { navController.navigateUp() },
+                onNavigateToFriendDetails = { friend ->
+                    navController.currentBackStackEntry?.savedStateHandle?.set("friend", friend)
+                    navController.navigate(Screen.FriendDetails.createRoute(friend.uid))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.FriendDetails.route,
+            arguments = Screen.FriendDetails.navArgs
+        ) { backStackEntry ->
+            val previousHandle = navController.previousBackStackEntry?.savedStateHandle
+            val friend = remember(previousHandle) { previousHandle?.get<Friend>("friend") }
+
+            LaunchedEffect(friend) {
+                if (friend != null) {
+                    previousHandle?.remove<Friend>("friend")
+                }
+            }
+
+            val onBack: () -> Unit = { navController.navigateUp() }
+
+            if (friend != null) {
+                FriendDetailsRoute(
+                    friend = friend,
+                    onBack = onBack,
+                    onFriendRemoved = { navController.navigateUp() }
+                )
+            } else {
+                LaunchedEffect(Unit) { navController.navigateUp() }
+            }
+        }
+
         composable(Screen.Main.route) {
             val tabsNavController = rememberNavController()
             val backStack by tabsNavController.currentBackStackEntryAsState()
-            val isShelfBooks = backStack?.destination?.route?.startsWith(Screen.ShelfBooks.route) == true
+            val isShelfBooks = backStack?.destination?.route?.startsWith("shelfBooks") == true
             val currentChildRoute = backStack?.destination?.route
-            val hideTopBar = currentChildRoute == Screen.ShelfBooks.route
-          
-            // Coroutine scope per animazioni programmatiche
-            val coroutineScope = rememberCoroutineScope()
+            val hideTopBar = currentChildRoute?.startsWith("shelfBooks") == true
 
-            // Crea ViewModel e stato utente
             val profileViewModel = ProfileViewModel(
                 firestoreUserDataSource = FirestoreUserDataSource(FirebaseFirestore.getInstance())
             )
+
             val user by profileViewModel.user.collectAsState()
 
             val onLogout: () -> Unit = {
@@ -178,23 +179,29 @@ fun AppNavHost(
                     NavBarComponent(navController = tabsNavController)
                 }
             ) { innerPadding ->
-
                 val layoutDir = LocalLayoutDirection.current
                 val contentPadding = if (isShelfBooks) {
                     PaddingValues(
-                        start  = innerPadding.calculateStartPadding(layoutDir),
-                        top    = 0.dp, // <-- niente spazio tra le due app bar
-                        end    = innerPadding.calculateEndPadding(layoutDir),
-                        bottom = innerPadding.calculateBottomPadding() // tieni il padding per la bottom bar
+                        start = innerPadding.calculateStartPadding(layoutDir),
+                        top = 0.dp,
+                        end = innerPadding.calculateEndPadding(layoutDir),
+                        bottom = innerPadding.calculateBottomPadding()
                     )
                 } else innerPadding
+
                 NavHost(
                     navController = tabsNavController,
                     startDestination = BottomDest.Home.route,
                     modifier = Modifier.padding(contentPadding)
                 ) {
-                    composable(BottomDest.Home.route) { HomeScreen(onLogout = onLogout) }
-                    composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) }
+                    composable(BottomDest.Home.route) {
+                        HomeScreen(onLogout = onLogout)
+                    }
+
+                    composable(BottomDest.Catalog.route) {
+                        CatalogScreen(onOpenBook = onOpenBook)
+                    }
+
                     composable(BottomDest.Books.route) {
                         ShelvesScreen(
                             onShelfClick = { shelfType ->
@@ -202,30 +209,34 @@ fun AppNavHost(
                                 val status = when (shelfType) {
                                     ShelfType.TO_READ -> "TO_READ"
                                     ShelfType.READING -> "READING"
-                                    ShelfType.READ -> "READ"
+                                    ShelfType.READ -> "read"
                                 }
-                                tabsNavController.navigate(Screen.ShelfBooks.createRoute(status)){
+                                tabsNavController.navigate(Screen.ShelfBooks.createRoute(status)) {
                                     launchSingleTop = true
                                 }
                             },
                             onOpenBook = onOpenBook
                         )
                     }
-                    composable(BottomDest.Profile.route) { ProfileScreen(
-                        user = user,
-                        profileViewModel = profileViewModel,
-                        onLogout = onLogout
-                    ) }
+
+                    composable(BottomDest.Profile.route) {
+                        ProfileScreen(
+                            user = user,
+                            profileViewModel = profileViewModel,
+                            onLogout = onLogout,
+                            onNavigateToFriends = {
+                                navController.navigate(Screen.FriendsList.route)
+                            }
+                        )
+                    }
 
                     composable(
-                        route = Screen.ShelfBooks.route, // es: "shelf/{status}"
+                        route = Screen.ShelfBooks.route,
                         arguments = Screen.ShelfBooks.navArgs
                     ) { entry ->
                         val shelfStatus = entry.arguments?.getString(Screen.ShelfBooks.ARG_STATUS) ?: "TO_READ"
                         SelectedShelfScreen(
-
                             onOpenBookDetail = { uiBook ->
-                                // Passa il Book al graph "root" per aprire il dettaglio
                                 navController.currentBackStackEntry?.savedStateHandle?.set(
                                     "book",
                                     Book(
@@ -245,7 +256,7 @@ fun AppNavHost(
                                     Screen.BookDetail.createRoute(uiBook.id, fromShelf = shelfStatus)
                                 )
                             },
-                            onBack = { tabsNavController.popBackStack() } // torna alla lista dei tab
+                            onBack = { tabsNavController.popBackStack() }
                         )
                     }
                 }

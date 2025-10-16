@@ -1,17 +1,20 @@
 package com.project.readingstats.features.profile.ui.components
 
 import com.google.firebase.Timestamp
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 
 /**
  * Rappresenta un utente amico nel sistema
  */
+@Parcelize
 data class Friend(
     val uid: String = "",           // UID univoco dell'utente
     val name: String = "",          // Nome dell'utente
     val surname: String = "",       // Cognome dell'utente
     val username: String = "",      // Username dell'utente
     val email: String = ""          // Email dell'utente
-) {
+): Parcelable {
     /**
      * Controlla se l'amico corrisponde al termine di ricerca
      */
