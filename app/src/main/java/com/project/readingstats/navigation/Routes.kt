@@ -1,6 +1,16 @@
 package com.project.readingstats.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavType
@@ -12,7 +22,10 @@ import com.project.readingstats.features.bookdetail.ui.components.BookDetailScre
 import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.profile.ui.components.Friend
 import com.project.readingstats.features.profile.ui.components.FriendDetailsScreen
+import com.project.readingstats.features.profile.ui.components.FriendsManager
 import com.project.readingstats.features.profile.ui.components.ListaAmici
+import com.project.readingstats.features.shelves.domain.model.UserBook
+
 
 sealed interface Screen {
     val route: String
@@ -123,9 +136,41 @@ fun FriendDetailsRoute(
     onBack: () -> Unit,
     onFriendRemoved: () -> Unit
 ) {
-    FriendDetailsScreen(
-        friend = friend,
-        onBack = onBack,
-        onRemoveFriend = onFriendRemoved
-    )
+    var friendBooks by remember { mutableStateOf<List<UserBook>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+
+    // Carica i libri da FriendsManager
+    LaunchedEffect(friend.uid) {
+        FriendsManager.loadUserWithBooksIfFriend(friend.uid) { _, books ->
+            friendBooks = books ?: emptyList()
+            loading = false
+        }
+    }
+
+    if (loading) {
+        // Mostra un indicatore di caricamento
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        FriendDetailsScreen(
+            friend = friend,
+            friendBooks = friendBooks,
+            onBack = onBack,
+            onRemoveFriend = { uid: String, onComplete: () -> Unit ->
+                FriendsManager.removeFriend(uid) { success, error ->
+                    onComplete()
+                    if (success) {
+                        // naviga indietro o mostra Snackbar di successo
+                        onBack()
+                    } else {
+                        // mostra Snackbar di errore
+                    }
+                }
+            }
+        )
+    }
 }

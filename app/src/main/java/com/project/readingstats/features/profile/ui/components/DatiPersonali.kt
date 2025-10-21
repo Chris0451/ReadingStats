@@ -23,9 +23,9 @@ import com.project.readingstats.features.auth.data.model.UserModelDto
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatiPersonali(
-    user: UserModelDto?, // <-- Passa l'utente come parametro
+    user: UserModelDto?,
     onBack: () -> Unit,
-    onEdit: () -> Unit // Nuova callback per andare alla modifica
+    onEdit: () -> Unit  // ← Questa callback viene chiamata quando clicchi "Modifica"
 ) {
     Column(
         Modifier
@@ -42,7 +42,9 @@ fun DatiPersonali(
                 }
             }
         )
+
         Spacer(Modifier.height(12.dp))
+
         AsyncImage(
             model = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
             contentDescription = "Profile picture",
@@ -51,7 +53,9 @@ fun DatiPersonali(
                 .size(110.dp)
                 .clip(CircleShape)
         )
+
         Spacer(Modifier.height(28.dp))
+
         Button(
             onClick = {},
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
@@ -62,6 +66,7 @@ fun DatiPersonali(
             Spacer(Modifier.width(8.dp))
             Text("Dati Personali", color = Color.White)
         }
+
         Card(
             modifier = Modifier
                 .padding(16.dp)
@@ -72,14 +77,15 @@ fun DatiPersonali(
                 Modifier.padding(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Mostra i veri valori dell'utente
                 LabelAndPlaceholder(label = "Nome Utente", value = user?.username)
                 LabelAndPlaceholder(label = "Name", value = user?.name)
                 LabelAndPlaceholder(label = "Surname", value = user?.surname)
                 LabelAndPlaceholder(label = "Email", value = user?.email)
+
                 Spacer(Modifier.height(14.dp))
+
                 Button(
-                    onClick = { onEdit() }, // Chiama la callback per andare alla schermata di modifica
+                    onClick = { onEdit() },  // ← Quando clicchi qui, chiama onEdit()
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -91,7 +97,6 @@ fun DatiPersonali(
         }
     }
 }
-@OptIn(ExperimentalMaterial3Api::class)
 
 @Composable
 fun LabelAndPlaceholder(label: String, value: String?) {

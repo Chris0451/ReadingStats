@@ -11,14 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,7 +29,7 @@ fun ProfileScreen(
     user: UserModelDto?,
     profileViewModel: ProfileViewModel,
     onLogout: () -> Unit,
-    onNavigateToFriends: () -> Unit = {}, // NUOVO PARAMETRO PER NAVIGAZIONE AMICI
+    onNavigateToFriends: () -> Unit = {},
     onDatiPersonali: () -> Unit = {},
     onInfoSupporto: () -> Unit = {}
 ) {
@@ -44,15 +37,14 @@ fun ProfileScreen(
     val updateLoading by profileViewModel.updateLoading.collectAsState()
     val updateResult by profileViewModel.updateResult.collectAsState()
 
-    // FIX: Gestiamo updateResult come String invece di Result
+    // Gestisci il risultato dell'aggiornamento
     LaunchedEffect(updateResult) {
         when (updateResult) {
             "success" -> {
-                currentScreen = "datiPersonali"
+                currentScreen = "datiPersonali"  // Torna a DatiPersonali dopo salvataggio
                 profileViewModel.clearUpdateResult()
             }
             "error_update_failed" -> {
-                currentScreen = "datiPersonali"
                 profileViewModel.clearUpdateResult()
             }
         }
@@ -72,28 +64,41 @@ fun ProfileScreen(
                 },
                 onDatiPersonali = {
                     currentScreen = "datiPersonali"
-                    onDatiPersonali()
                 },
                 onListaAmici = {
-                    // ===== USA NAVIGAZIONE ESTERNA =====
                     onNavigateToFriends()
                 },
                 onInfoSupporto = {
                     currentScreen = "infoSupporto"
-                    onInfoSupporto()
                 }
             )
         }
+
         "datiPersonali" -> {
-            ModificaDatiPersonali(
+            DatiPersonali(
                 user = user,
-                profileViewModel = profileViewModel,
                 onBack = { currentScreen = "profile" },
-                updateLoading = updateLoading
+                onEdit = {
+                    currentScreen = "modificaDati"  // ← Vai alla schermata di modifica
+                }
             )
         }
+
+        "modificaDati" -> {
+            ModificaDatiPersonali(
+                user = user,
+                onSave = { username, name, surname, email ->
+                    // Chiama il ViewModel per salvare i dati
+                    profileViewModel.updateUserProfile(username, name, surname, email)
+                },
+                onCancel = {
+                    currentScreen = "datiPersonali"  // ← Torna a DatiPersonali
+                },
+                isLoading = updateLoading
+            )
+        }
+
         "infoSupporto" -> {
-            // ===== USA LA FUNZIONE DEL FILE SEPARATO =====
             InfoSupporto(
                 onBack = { currentScreen = "profile" }
             )
@@ -151,16 +156,14 @@ fun ProfileHeader(user: UserModelDto?) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // FIX: Usa un campo che esiste davvero in UserModelDto o placeholder
         AsyncImage(
-            model = user?.username ?: "", // CAMBIATO: usa username invece di avatarUrl
+            model = user?.username ?: "",
             contentDescription = "Profile picture",
             contentScale = ContentScale.Crop,
             modifier = Modifier.size(110.dp).clip(CircleShape)
         )
 
         Spacer(Modifier.height(16.dp))
-
         Text(
             user?.username ?: "Loading...",
             style = MaterialTheme.typography.headlineMedium,
@@ -242,42 +245,9 @@ fun ProfileMenuItem(
         )
 
         Spacer(Modifier.width(12.dp))
-
         Column(modifier = Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Bold)
             Text(description, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
         }
     }
 }
-
-@Composable
-fun ModificaDatiPersonali(
-    user: UserModelDto?,
-    profileViewModel: ProfileViewModel,
-    onBack: () -> Unit,
-    updateLoading: Boolean
-) {
-    // Implementazione esistente - mantieni quello che hai già
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        if (updateLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Text("Dati Personali - Implementazione esistente")
-            Button(onClick = onBack) {
-                Text("Torna al profilo")
-            }
-        }
-    }
-}
-
-// ===== RIMOSSA LA FUNZIONE InfoSupporto DUPLICATA =====
-// La funzione InfoSupporto è ora definita solo nel file InfoSupporto.kt
