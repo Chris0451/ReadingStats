@@ -19,15 +19,23 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.project.readingstats.features.shelves.domain.model.UserBook
+import com.project.readingstats.features.shelves.domain.model.ReadingStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendDetailsScreen(
     friend: Friend,
+    friendBooks: List<UserBook>, // Lista libri dell'amico
     onBack: () -> Unit,
-    onRemoveFriend: () -> Unit
+    onRemoveFriend:  (String, () -> Unit) -> Unit
 ) {
     var showRemoveDialog by remember { mutableStateOf(false) }
+
+    // Filtra i libri per stato
+    val readingBooks = friendBooks.filter { it.status == ReadingStatus.READING }
+    val completedBooks = friendBooks.filter { it.status == ReadingStatus.READ }
+    var isLoading by remember { mutableStateOf(false)}
     BackHandler { onBack() }
 
     Scaffold(
@@ -51,46 +59,49 @@ fun FriendDetailsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { FriendProfileHeader(friend) }
-            item { ReadingStatisticsCard() }
-            item { CurrentReadingBooksCard() }
-            item { CompletedBooksCard() }
+            item { ReadingStatisticsCard(friendBooks) }
+            item { CurrentReadingBooksCard(readingBooks) }
+            item { CompletedBooksCard(completedBooks) }
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 RemoveFriendButton(onClick = { showRemoveDialog = true })
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
 
-        if (showRemoveDialog) {
-            AlertDialog(
-                onDismissRequest = { showRemoveDialog = false },
-                title = { Text("Rimuovi Amicizia", fontWeight = FontWeight.Bold) },
-                text = {
-                    Text(
-                        "Sei sicuro di voler rimuovere ${friend.username} dalla tua lista amici?",
-                        style = MaterialTheme.typography.bodyMedium
+    if (showRemoveDialog) {
+        AlertDialog(
+            onDismissRequest = { showRemoveDialog = false },
+            title = { Text("Rimuovi Amicizia", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Sei sicuro di voler rimuovere ${friend.username} dalla tua lista amici?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showRemoveDialog = false
+                        isLoading = true
+                        onRemoveFriend(friend.uid){
+                            isLoading = false
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
                     )
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showRemoveDialog = false
-                            onRemoveFriend()
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Text("Rimuovi", fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showRemoveDialog = false }) {
-                        Text("Annulla")
-                    }
+                ) {
+                    Text("Rimuovi", fontWeight = FontWeight.Bold)
                 }
-            )
-        }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRemoveDialog = false }) {
+                    Text("Annulla")
+                }
+            }
+        )
     }
 }
 
@@ -153,21 +164,19 @@ private fun FriendProfileHeader(friend: Friend) {
                     textAlign = TextAlign.Center
                 )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Membro dal: 15 Gennaio 2024",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
 
 @Composable
-private fun ReadingStatisticsCard() {
+private fun ReadingStatisticsCard(allBooks: List<UserBook>) {
+    // Calcola statistiche dai libri reali
+    val totalReadTime = allBooks.sumOf { it.totalReadSeconds ?: 0L }
+    val completedBooksCount = allBooks.count { it.status == ReadingStatus.READ }
+    val averageTimePerBook = if (completedBooksCount > 0) {
+        totalReadTime / completedBooksCount
+    } else 0L
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -182,13 +191,13 @@ private fun ReadingStatisticsCard() {
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp),
-                color = Color(0xFF0D47A1) // Blu scuro per contrasto
+                color = Color(0xFF0D47A1)
             )
 
             StatisticRow(
                 icon = Icons.Default.Schedule,
                 label = "Tempo totale di lettura",
-                value = "127 ore, 34 minuti",
+                value = formatTime(totalReadTime),
                 valueColor = Color(0xFF1565C0)
             )
 
@@ -197,7 +206,7 @@ private fun ReadingStatisticsCard() {
             StatisticRow(
                 icon = Icons.Default.Book,
                 label = "Libri completati",
-                value = "23 libri",
+                value = "$completedBooksCount libri",
                 valueColor = Color(0xFF1565C0)
             )
 
@@ -206,7 +215,7 @@ private fun ReadingStatisticsCard() {
             StatisticRow(
                 icon = Icons.Default.TrendingUp,
                 label = "Tempo medio per libro",
-                value = "5 ore, 32 minuti",
+                value = formatTime(averageTimePerBook),
                 valueColor = Color(0xFF0D47A1)
             )
         }
@@ -214,7 +223,7 @@ private fun ReadingStatisticsCard() {
 }
 
 @Composable
-private fun CurrentReadingBooksCard() {
+private fun CurrentReadingBooksCard(readingBooks: List<UserBook>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -225,36 +234,43 @@ private fun CurrentReadingBooksCard() {
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                text = "Libri in Lettura (2)",
+                text = "Libri in Lettura (${readingBooks.size})",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp),
-                color = Color(0xFFE65100) // Arancione scuro
+                color = Color(0xFFE65100)
             )
 
-            CurrentBookItem(
-                title = "Il Nome della Rosa",
-                author = "Umberto Eco",
-                pagesRead = 245,
-                totalPages = 612,
-                timeSpent = "12 ore, 23 minuti"
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            CurrentBookItem(
-                title = "1984",
-                author = "George Orwell",
-                pagesRead = 87,
-                totalPages = 328,
-                timeSpent = "4 ore, 56 minuti"
-            )
+            if (readingBooks.isEmpty()) {
+                Text(
+                    text = "Nessun libro in lettura al momento",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF757575),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                readingBooks.forEachIndexed { index, book ->
+                    CurrentBookItem(
+                        title = book.title,
+                        author = book.authors.joinToString(", "),
+                        pagesRead = book.pageInReading ?: 0,
+                        totalPages = book.pageCount ?: 1,
+                        timeSpent = formatTime(book.totalReadSeconds ?: 0L)
+                    )
+                    if (index < readingBooks.size - 1) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun CompletedBooksCard() {
+private fun CompletedBooksCard(completedBooks: List<UserBook>) {
+    // Prendi solo gli ultimi 3 libri completati
+    val recentCompleted = completedBooks.take(3)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -269,38 +285,31 @@ private fun CompletedBooksCard() {
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp),
-                color = Color(0xFF1B5E20) // Verde scuro
+                color = Color(0xFF1B5E20)
             )
 
-            CompletedBookItem(
-                title = "Il Piccolo Principe",
-                author = "Antoine de Saint-Exupéry",
-                completionTime = "3 ore, 45 minuti",
-                completedDate = "5 giorni fa"
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            CompletedBookItem(
-                title = "Fahrenheit 451",
-                author = "Ray Bradbury",
-                completionTime = "5 ore, 12 minuti",
-                completedDate = "2 settimane fa"
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            CompletedBookItem(
-                title = "L'Alchimista",
-                author = "Paulo Coelho",
-                completionTime = "4 ore, 28 minuti",
-                completedDate = "1 mese fa"
-            )
+            if (recentCompleted.isEmpty()) {
+                Text(
+                    text = "Nessun libro completato ancora",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF757575),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                recentCompleted.forEachIndexed { index, book ->
+                    CompletedBookItem(
+                        title = book.title,
+                        author = book.authors.joinToString(", "),
+                        completionTime = formatTime(book.totalReadSeconds ?: 0L)
+                    )
+                    if (index < recentCompleted.size - 1) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+            }
         }
     }
 }
-
-
 
 @Composable
 private fun CurrentBookItem(
@@ -322,13 +331,15 @@ private fun CurrentBookItem(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF212121)
+                color = Color(0xFF212121),
+                maxLines = 2
             )
 
             Text(
                 text = "di $author",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF616161)
+                color = Color(0xFF616161),
+                maxLines = 1
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -346,8 +357,9 @@ private fun CurrentBookItem(
                         color = Color(0xFF424242)
                     )
 
+                    val progress = if (totalPages > 0) pagesRead.toFloat() / totalPages.toFloat() else 0f
                     LinearProgressIndicator(
-                        progress = pagesRead.toFloat() / totalPages.toFloat(),
+                        progress = progress.coerceIn(0f, 1f),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 4.dp),
@@ -373,8 +385,7 @@ private fun CurrentBookItem(
 private fun CompletedBookItem(
     title: String,
     author: String,
-    completionTime: String,
-    completedDate: String
+    completionTime: String
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -394,13 +405,15 @@ private fun CompletedBookItem(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF212121)
+                        color = Color(0xFF212121),
+                        maxLines = 2
                     )
 
                     Text(
                         text = "di $author",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF616161)
+                        color = Color(0xFF616161),
+                        maxLines = 1
                     )
                 }
 
@@ -414,23 +427,12 @@ private fun CompletedBookItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Tempo: $completionTime",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF2E7D32),
-                    fontWeight = FontWeight.Medium
-                )
-
-                Text(
-                    text = completedDate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF757575)
-                )
-            }
+            Text(
+                text = "Tempo: $completionTime",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF2E7D32),
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
@@ -495,5 +497,16 @@ private fun RemoveFriendButton(onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onError,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+// Funzione helper per formattare i secondi in ore e minuti
+private fun formatTime(seconds: Long): String {
+    val hours = seconds / 3600
+    val minutes = (seconds % 3600) / 60
+    return when {
+        hours > 0 -> "$hours ore, $minutes minuti"
+        minutes > 0 -> "$minutes minuti"
+        else -> "< 1 minuto"
     }
 }

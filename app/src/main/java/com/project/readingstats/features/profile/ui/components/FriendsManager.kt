@@ -3,6 +3,8 @@ package com.project.readingstats.features.profile.ui.components
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.project.readingstats.features.shelves.domain.model.UserBook
+import com.project.readingstats.features.shelves.domain.model.ReadingStatus
 
 /**
  * Manager centralizzato per gestire tutte le operazioni relative agli amici e richieste di amicizia
@@ -73,6 +75,7 @@ object FriendsManager {
                 .addOnFailureListener { exception ->
                     onResult(emptyList(), "Errore nel caricamento amici: ${exception.message}")
                 }
+
         } catch (e: Exception) {
             onResult(emptyList(), "Errore generale: ${e.message}")
         }
@@ -110,6 +113,7 @@ object FriendsManager {
                 .addOnFailureListener { exception ->
                     onResult(emptyList(), "Errore nel caricamento utenti: ${exception.message}")
                 }
+
         } catch (e: Exception) {
             onResult(emptyList(), "Errore generale: ${e.message}")
         }
@@ -141,6 +145,70 @@ object FriendsManager {
                 }
         } catch (e: Exception) {
             onResult(null)
+        }
+    }
+
+    /**
+     * Carica un utente con i suoi libri SOLO se è un amico
+     */
+    fun loadUserWithBooksIfFriend(uid: String, onResult: (Friend?, List<UserBook>?) -> Unit) {
+        try {
+            val db = getFirestore()
+            val auth = getAuth()
+            val currentUser = auth?.currentUser
+
+            if (db == null || currentUser == null) {
+                onResult(null, null)
+                return
+            }
+
+            // 1. Recupera la lista amici dell'utente corrente
+            db.collection("users")
+                .document(currentUser.uid)
+                .get()
+                .addOnSuccessListener { currentUserDoc ->
+                    val friendsUids = currentUserDoc.get("friends") as? List<String> ?: emptyList()
+
+                    // 2. Carica i dati dell'utente selezionato
+                    db.collection("users")
+                        .document(uid)
+                        .get()
+                        .addOnSuccessListener { userDoc ->
+                            if (userDoc.exists()) {
+                                val friend = mapDocumentToFriend(userDoc)
+
+                                // 3. Se è amico, carica anche i libri
+                                if (friendsUids.contains(uid)) {
+                                    db.collection("users")
+                                        .document(uid)
+                                        .collection("books")
+                                        .get()
+                                        .addOnSuccessListener { booksSnapshot ->
+                                            val books = booksSnapshot.documents.mapNotNull { bookDoc ->
+                                                mapDocumentToUserBook(bookDoc)
+                                            }
+                                            onResult(friend, books)
+                                        }
+                                        .addOnFailureListener {
+                                            onResult(friend, emptyList())
+                                        }
+                                } else {
+                                    // Non è amico: solo dati profilo
+                                    onResult(friend, null)
+                                }
+                            } else {
+                                onResult(null, null)
+                            }
+                        }
+                        .addOnFailureListener {
+                            onResult(null, null)
+                        }
+                }
+                .addOnFailureListener {
+                    onResult(null, null)
+                }
+        } catch (e: Exception) {
+            onResult(null, null)
         }
     }
 
@@ -184,6 +252,7 @@ object FriendsManager {
                 .addOnFailureListener { exception ->
                     onResult(false, "Errore invio richiesta: ${exception.message}")
                 }
+
         } catch (e: Exception) {
             onResult(false, "Errore generale: ${e.message}")
         }
@@ -221,6 +290,7 @@ object FriendsManager {
                 .addOnFailureListener { exception ->
                     onResult(emptyList(), "Errore caricamento richieste: ${exception.message}")
                 }
+
         } catch (e: Exception) {
             onResult(emptyList(), "Errore generale: ${e.message}")
         }
@@ -256,6 +326,7 @@ object FriendsManager {
                 .addOnFailureListener { exception ->
                     onResult(emptyList(), "Errore caricamento richieste inviate: ${exception.message}")
                 }
+
         } catch (e: Exception) {
             onResult(emptyList(), "Errore generale: ${e.message}")
         }
@@ -281,6 +352,7 @@ object FriendsManager {
                 .addOnFailureListener { exception ->
                     onResult(false, "Errore accettazione richiesta: ${exception.message}")
                 }
+
         } catch (e: Exception) {
             onResult(false, "Errore generale: ${e.message}")
         }
@@ -304,6 +376,7 @@ object FriendsManager {
                 .addOnFailureListener { exception ->
                     onResult(false, "Errore rifiuto richiesta: ${exception.message}")
                 }
+
         } catch (e: Exception) {
             onResult(false, "Errore generale: ${e.message}")
         }
@@ -404,4 +477,78 @@ object FriendsManager {
             null
         }
     }
+
+    /**
+     * Mappa un documento Firestore a un oggetto UserBook
+     */
+    private fun mapDocumentToUserBook(document: com.google.firebase.firestore.DocumentSnapshot): UserBook? {
+        return try {
+            UserBook(
+                id = document.id,
+                volumeId = document.getString("volumeId") ?: "",
+                title = document.getString("title") ?: "",
+                authors = document.get("authors") as? List<String> ?: emptyList(),
+                thumbnail = document.getString("thumbnail"),
+                categories = document.get("categories") as? List<String> ?: emptyList(),
+                pageCount = document.getLong("pageCount")?.toInt(),
+                description = document.getString("description"),
+                pageInReading = document.getLong("pageInReading")?.toInt(),
+                status = when (document.getString("status")) {
+                    "READING" -> ReadingStatus.READING
+                    "READ" -> ReadingStatus.READ
+                    "TO_READ" -> ReadingStatus.TO_READ
+                    else -> ReadingStatus.TO_READ
+                },
+                totalReadSeconds = document.getLong("totalReadSeconds"),
+                isbn13 = document.getString("isbn13"),
+                isbn10 = document.getString("isbn10")
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+    /**
+     * Rimuove un'amicizia in modo bidirezionale
+     */
+    fun removeFriend(friendUid: String, onResult: (Boolean, String?) -> Unit) {
+        try {
+            val auth = getAuth()
+            val db = getFirestore()
+            val currentUser = auth?.currentUser
+
+            if (currentUser == null) {
+                onResult(false, "Utente non autenticato o Firebase non disponibile")
+                return
+            }
+
+            if (db == null) {
+                onResult(false, "Firebase Firestore non disponibile")
+                return
+            }
+
+            // Rimuovi friendUid dalla lista friends dell'utente corrente
+            db.collection("users")
+                .document(currentUser.uid)
+                .update("friends", com.google.firebase.firestore.FieldValue.arrayRemove(friendUid))
+                .addOnSuccessListener {
+                    // Rimuovi currentUser.uid dalla lista friends dell'amico
+                    db.collection("users")
+                        .document(friendUid)
+                        .update("friends", com.google.firebase.firestore.FieldValue.arrayRemove(currentUser.uid))
+                        .addOnSuccessListener {
+                            onResult(true, null)
+                        }
+                        .addOnFailureListener { exception ->
+                            onResult(false, "Errore rimozione reciproca: ${exception.message}")
+                        }
+                }
+                .addOnFailureListener { exception ->
+                    onResult(false, "Errore rimozione amicizia: ${exception.message}")
+                }
+
+        } catch (e: Exception) {
+            onResult(false, "Errore generale: ${e.message}")
+        }
+    }
+
 }
