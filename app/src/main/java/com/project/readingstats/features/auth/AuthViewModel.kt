@@ -15,40 +15,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.project.readingstats.features.auth.domain.model.LoginFormState
+import com.project.readingstats.features.auth.domain.model.RegistrationFormState
 
-data class RegistrationFormState(
-    val name: String = "",
-    val surname: String = "",
-    val username: String = "",
-    val email: String = "",
-    val password: String = "",
-    val confirmPassword: String = "",
-    val usernameAvailable: Boolean? = null,
-    val isSubmitting: Boolean = false,
-    val error: String? = null,
-    val success: Boolean = false
-) {
-    val canSubmit: Boolean
-        get() = name.isNotBlank() &&
-                surname.isNotBlank() &&
-                username.length >= 4 &&
-                Patterns.EMAIL_ADDRESS.matcher(email).matches() &&
-                password.length >= 6 &&
-                password == confirmPassword &&
-                (usernameAvailable == true)
-}
 
-data class LoginFormState(
-    val email: String = "",
-    val password: String = "",
-    val isSubmitting: Boolean = false,
-    val error: String? = null,
-    val success: Boolean = false
-){
-    val canSubmit: Boolean
-        get() = Patterns.EMAIL_ADDRESS.matcher(email).matches() &&
-                password.length >= 6
-}
+
+
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val checkUsernameAvailableUseCase: CheckUsernameAvailableUseCase,
@@ -155,9 +127,5 @@ class AuthViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    fun clearLoginError(){
-        _loginState.value = _loginState.value.copy(error = null)
     }
 }
