@@ -17,6 +17,7 @@
         android:theme="@style/Theme.ReadingStats">
         <activity
             android:name=".MainActivity"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize"
             android:exported="true"
             android:label="@string/app_name"

@@ -10,7 +10,6 @@ import com.project.readingstats.features.shelves.domain.usecase.ObserveUserBookU
 import com.project.readingstats.features.shelves.domain.usecase.RemoveBookFromShelfUseCase
 import com.project.readingstats.features.shelves.domain.usecase.SetBookStatusUseCase
 import com.project.readingstats.features.shelves.domain.usecase.SetPageCountUseCase
-import com.project.readingstats.features.shelves.domain.usecase.SetPageInReadingUseCase
 import com.project.readingstats.features.shelves.domain.usecase.UpsertStatusBookUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,7 +32,6 @@ class BookDetailViewModel @Inject constructor(
     private val setBookStatusUseCase: SetBookStatusUseCase,
     private val removeBookFromShelfUseCase: RemoveBookFromShelfUseCase,
     private val setPageCountUseCase: SetPageCountUseCase,
-    private val setPageInReadingUseCase: SetPageInReadingUseCase,
     private val observeUserBook: ObserveUserBookUseCase,
     private val upsertStatusBookUseCase: UpsertStatusBookUseCase
 ): ViewModel(){
@@ -121,9 +119,6 @@ class BookDetailViewModel @Inject constructor(
         }
     }
 
-
-
-
     fun updatePageCount(pageCount: Int){
         viewModelScope.launch {
             runCatching {
@@ -132,11 +127,4 @@ class BookDetailViewModel @Inject constructor(
         }
     }
 
-    fun updatePagesRead(pages: Int){
-        viewModelScope.launch {
-            runCatching {
-                setPageInReadingUseCase(volumeId, pages)
-            }.onFailure { _events.tryEmit(it.message ?: "Errore durante l'aggiornamento del numero di pagine lette") }
-        }
-    }
 }

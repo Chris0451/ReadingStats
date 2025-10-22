@@ -47,6 +47,7 @@ fun AppNavHost(
 ) {
     val navController = rememberNavController()
 
+    //Controllo autenticazione utente
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
             navController.navigate(Screen.Main.route) {
@@ -62,6 +63,8 @@ fun AppNavHost(
         startDestination = if (isAuthenticated) Screen.Main.route else start.route,
         modifier = modifier
     ) {
+
+        //Navigazione su schermata Login
         composable(Screen.Login.route) {
             LoginRoute(
                 onLoginSuccess = {
@@ -71,12 +74,14 @@ fun AppNavHost(
                         restoreState = false
                     }
                 },
+                //Pulsante per schermata registrazione
                 onRegisterClick = {
                     navController.navigate(Screen.Register.route) { launchSingleTop = true }
                 }
             )
         }
 
+        //Navigazione su schermata registrazione
         composable(Screen.Register.route) {
             RegistrationRoute(
                 onRegistered = {
@@ -86,6 +91,7 @@ fun AppNavHost(
                         restoreState = false
                     }
                 },
+                //Pulsante per schermata login
                 onLoginClick = {
                     navController.popBackStack()
                     navController.navigate(Screen.Login.route) { launchSingleTop = true }
@@ -93,6 +99,7 @@ fun AppNavHost(
             )
         }
 
+        //Navigazione su schermata dettagli libro
         composable(
             route = Screen.BookDetail.route,
             arguments = Screen.BookDetail.navArgs
@@ -119,6 +126,7 @@ fun AppNavHost(
             }
         }
 
+        //Navigazione su schermata lista amici
         composable(Screen.FriendsList.route) {
             FriendsListRoute(
                 onBack = { navController.navigateUp() },
@@ -129,6 +137,7 @@ fun AppNavHost(
             )
         }
 
+        //Navigazione su schermata profilo amici
         composable(
             route = Screen.FriendDetails.route,
             arguments = Screen.FriendDetails.navArgs
@@ -155,6 +164,7 @@ fun AppNavHost(
             }
         }
 
+        //Navigazione su schermata principale (AppScaffold + NavBar + Tab NavHost)
         composable(Screen.Main.route) {
             val tabsNavController = rememberNavController()
             val backStack by tabsNavController.currentBackStackEntryAsState()
@@ -203,8 +213,11 @@ fun AppNavHost(
                     startDestination = BottomDest.Home.route,
                     modifier = Modifier.padding(contentPadding)
                 ) {
+                    //Navigazione alla home
                     composable(BottomDest.Home.route) { HomeScreen() }
+                    //Navigazione al catalogo
                     composable(BottomDest.Catalog.route) { CatalogScreen(onOpenBook = onOpenBook) }
+                    //Navigazione alle liste di libri
                     composable(BottomDest.Books.route) {
                         ShelvesScreen(
                             onShelfClick = { shelfType ->
@@ -221,7 +234,7 @@ fun AppNavHost(
                             onOpenBook = onOpenBook
                         )
                     }
-
+                    //Navigazione al profilo
                     composable(BottomDest.Profile.route) {
                         ProfileScreen(
                             user = user,
@@ -233,6 +246,7 @@ fun AppNavHost(
                         )
                     }
 
+                    //Navigazione a una determinata lista di libri
                     composable(
                         route = Screen.ShelfBooks.route,
                         arguments = Screen.ShelfBooks.navArgs

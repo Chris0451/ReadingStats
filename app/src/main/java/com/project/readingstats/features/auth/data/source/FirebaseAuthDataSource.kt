@@ -8,7 +8,6 @@ class FirebaseAuthDataSource(
     private val auth: FirebaseAuth
 ) {
     suspend fun createUser(email: String, password: String): AuthResult = auth.createUserWithEmailAndPassword(email, password).await()
-
     suspend fun signIn(email: String, password: String): AuthResult = auth.signInWithEmailAndPassword(email, password).await()
 
     fun signOut() = auth.signOut()
