@@ -212,7 +212,7 @@ fun AppNavHost(
                                 val status = when (shelfType) {
                                     ShelfType.TO_READ -> "TO_READ"
                                     ShelfType.READING -> "READING"
-                                    ShelfType.READ -> "read"
+                                    ShelfType.READ -> "READ"
                                 }
                                 tabsNavController.navigate(Screen.ShelfBooks.createRoute(status)) {
                                     launchSingleTop = true

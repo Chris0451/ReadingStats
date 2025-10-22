@@ -2,61 +2,66 @@ package com.project.readingstats.features.profile.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.features.auth.data.model.UserModelDto
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModificaDatiPersonali(
-    user: UserModelDto?, // L'utente corrente con i dati attuali
-    onSave: (String, String, String, String) -> Unit, // Callback per salvare (username, name, surname, email)
-    onCancel: () -> Unit, // Callback per tornare indietro
-    isLoading: Boolean = false // Stato di caricamento durante il salvataggio
+    user: UserModelDto?,
+    onSave: (String, String, String, String) -> Unit,
+    onCancel: () -> Unit,
+    isLoading: Boolean = false
 ) {
-    // Stati per i campi di testo - inizializzati con i valori attuali dell'utente
-    var usernameState by remember {
-        mutableStateOf(TextFieldValue(user?.username ?: ""))
-    }
-    var nameState by remember {
-        mutableStateOf(TextFieldValue(user?.name ?: ""))
-    }
-    var surnameState by remember {
-        mutableStateOf(TextFieldValue(user?.surname ?: ""))
-    }
-    var emailState by remember {
-        mutableStateOf(TextFieldValue(user?.email ?: ""))
-    }
-    /* Campo password fittizio (non modificabile nei dati utente reali)
-    var passwordState by remember {
-        mutableStateOf(TextFieldValue("••••••••"))
-    }*/
+    var usernameState by remember { mutableStateOf(TextFieldValue(user?.username ?: "")) }
+    var nameState by remember { mutableStateOf(TextFieldValue(user?.name ?: "")) }
+    var surnameState by remember { mutableStateOf(TextFieldValue(user?.surname ?: "")) }
+    var emailState by remember { mutableStateOf(TextFieldValue(user?.email ?: "")) }
 
-    // Gestione errori di validazione
+    // Stati per password
+    var currentPasswordState by remember { mutableStateOf(TextFieldValue("")) }
+    var newPasswordState by remember { mutableStateOf(TextFieldValue("")) }
+    var confirmPasswordState by remember { mutableStateOf(TextFieldValue("")) }
+
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var showCurrentPassword by remember { mutableStateOf(false) }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+    var isChangingPassword by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5)) // Sfondo grigio chiaro
-            .padding(16.dp)
+            .background(Color(0xFFF5F5F5))
+            .imePadding()
     ) {
         // Header con pulsante indietro
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            // Pulsante per tornare indietro
             IconButton(onClick = onCancel) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -66,191 +71,328 @@ fun ModificaDatiPersonali(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Card contenitore principale con i campi
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Card Dati Personali
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                // Mostra messaggio di errore se presente
-                if (showError) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                }
-
-                // Campo Nome Utente
-                SimpleTextField(
-                    label = "Nome Utente",
-                    value = usernameState,
-                    onValueChange = {
-                        usernameState = it
-                        showError = false // Nasconde errore quando modifica
-                    },
-                    enabled = !isLoading
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Campo Nome
-                SimpleTextField(
-                    label = "Name",
-                    value = nameState,
-                    onValueChange = {
-                        nameState = it
-                        showError = false
-                    },
-                    enabled = !isLoading
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Campo Cognome
-                SimpleTextField(
-                    label = "Surname",
-                    value = surnameState,
-                    onValueChange = {
-                        surnameState = it
-                        showError = false
-                    },
-                    enabled = !isLoading
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Campo Email
-                SimpleTextField(
-                    label = "Email",
-                    value = emailState,
-                    onValueChange = {
-                        emailState = it
-                        showError = false
-                    },
-                    enabled = !isLoading
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Campo Password (fittizio, non modificabile)
-               /* SimpleTextField(
-                    label = "Password",
-                   // value = passwordState,
-                    onValueChange = { /* Non fare nulla - campo non modificabile */ },
-                    enabled = false // Sempre disabilitato
-                )*/
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Pulsante Conferma Modifica
-                Button(
-                    onClick = {
-                        // Validazione dei campi prima del salvataggio
-                        val username = usernameState.text.trim()
-                        val name = nameState.text.trim()
-                        val surname = surnameState.text.trim()
-                        val email = emailState.text.trim()
-
-                        // Controllo che i campi obbligatori non siano vuoti
-                        when {
-                            username.isEmpty() -> {
-                                errorMessage = "Il nome utente è obbligatorio"
-                                showError = true
-                            }
-                            name.isEmpty() -> {
-                                errorMessage = "Il nome è obbligatorio"
-                                showError = true
-                            }
-                            surname.isEmpty() -> {
-                                errorMessage = "Il cognome è obbligatorio"
-                                showError = true
-                            }
-                            email.isEmpty() -> {
-                                errorMessage = "L'email è obbligatoria"
-                                showError = true
-                            }
-                            !email.contains("@") -> {
-                                errorMessage = "Inserisci un'email valida"
-                                showError = true
-                            }
-                            else -> {
-                                // Validazione passata, salva i dati
-                                onSave(username, name, surname, email)
-                            }
-                        }
-                    },
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2196F3) // Blu come nell'immagine
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    enabled = !isLoading // Disabilitato durante il caricamento
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (isLoading) {
-                        // Mostra indicatore di caricamento durante il salvataggio
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                    if (showError) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
+
+                    SimpleTextField(
+                        label = "Nome Utente",
+                        value = usernameState,
+                        onValueChange = {
+                            usernameState = it
+                            showError = false
+                        },
+                        enabled = !isLoading
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    SimpleTextField(
+                        label = "Name",
+                        value = nameState,
+                        onValueChange = {
+                            nameState = it
+                            showError = false
+                        },
+                        enabled = !isLoading
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    SimpleTextField(
+                        label = "Surname",
+                        value = surnameState,
+                        onValueChange = {
+                            surnameState = it
+                            showError = false
+                        },
+                        enabled = !isLoading
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    SimpleTextField(
+                        label = "Email",
+                        value = emailState,
+                        onValueChange = {
+                            emailState = it
+                            showError = false
+                        },
+                        enabled = !isLoading
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = {
+                            val username = usernameState.text.trim()
+                            val name = nameState.text.trim()
+                            val surname = surnameState.text.trim()
+                            val email = emailState.text.trim()
+
+                            when {
+                                username.isEmpty() -> {
+                                    errorMessage = "Il nome utente è obbligatorio"
+                                    showError = true
+                                }
+                                name.isEmpty() -> {
+                                    errorMessage = "Il nome è obbligatorio"
+                                    showError = true
+                                }
+                                surname.isEmpty() -> {
+                                    errorMessage = "Il cognome è obbligatorio"
+                                    showError = true
+                                }
+                                email.isEmpty() -> {
+                                    errorMessage = "L'email è obbligatoria"
+                                    showError = true
+                                }
+                                !email.contains("@") -> {
+                                    errorMessage = "Inserisci un'email valida"
+                                    showError = true
+                                }
+                                else -> {
+                                    onSave(username, name, surname, email)
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2196F3)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Salvando...",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        } else {
                             Text(
-                                "Salvando...",
+                                "Conferma Modifica",
                                 color = Color.White,
                                 fontWeight = FontWeight.Medium
                             )
                         }
-                    } else {
-                        Text(
-                            "Conferma Modifica",
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Card Cambio Password
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        "Cambia Password",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    PasswordTextField(
+                        label = "Password Corrente",
+                        value = currentPasswordState,
+                        onValueChange = {
+                            currentPasswordState = it
+                            showError = false
+                        },
+                        isVisible = showCurrentPassword,
+                        onVisibilityToggle = { showCurrentPassword = !showCurrentPassword },
+                        enabled = !isChangingPassword
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    PasswordTextField(
+                        label = "Nuova Password",
+                        value = newPasswordState,
+                        onValueChange = {
+                            newPasswordState = it
+                            showError = false
+                        },
+                        isVisible = showNewPassword,
+                        onVisibilityToggle = { showNewPassword = !showNewPassword },
+                        enabled = !isChangingPassword
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    PasswordTextField(
+                        label = "Conferma Password",
+                        value = confirmPasswordState,
+                        onValueChange = {
+                            confirmPasswordState = it
+                            showError = false
+                        },
+                        isVisible = showConfirmPassword,
+                        onVisibilityToggle = { showConfirmPassword = !showConfirmPassword },
+                        enabled = !isChangingPassword
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = {
+                            val currentPwd = currentPasswordState.text.trim()
+                            val newPwd = newPasswordState.text.trim()
+                            val confirmPwd = confirmPasswordState.text.trim()
+
+                            when {
+                                currentPwd.isEmpty() -> {
+                                    errorMessage = "Inserisci la password corrente"
+                                    showError = true
+                                }
+                                newPwd.isEmpty() -> {
+                                    errorMessage = "Inserisci la nuova password"
+                                    showError = true
+                                }
+                                newPwd.length < 6 -> {
+                                    errorMessage = "La password deve avere almeno 6 caratteri"
+                                    showError = true
+                                }
+                                newPwd != confirmPwd -> {
+                                    errorMessage = "Le password non corrispondono"
+                                    showError = true
+                                }
+                                else -> {
+                                    // Cambio password
+                                    isChangingPassword = true
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+
+                                    if (firebaseUser != null && firebaseUser.email != null) {
+                                        val credential = EmailAuthProvider.getCredential(
+                                            firebaseUser.email!!,
+                                            currentPwd
+                                        )
+
+                                        firebaseUser.reauthenticate(credential)
+                                            .addOnSuccessListener {
+                                                firebaseUser.updatePassword(newPwd)
+                                                    .addOnSuccessListener {
+                                                        errorMessage = "Password modificata con successo"
+                                                        showError = false
+                                                        currentPasswordState = TextFieldValue("")
+                                                        newPasswordState = TextFieldValue("")
+                                                        confirmPasswordState = TextFieldValue("")
+                                                        isChangingPassword = false
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        errorMessage = "Errore nel cambio password: ${e.message}"
+                                                        showError = true
+                                                        isChangingPassword = false
+                                                    }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                errorMessage = "Password corrente errata"
+                                                showError = true
+                                                isChangingPassword = false
+                                            }
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF5722)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = !isChangingPassword
+                    ) {
+                        if (isChangingPassword) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Cambiando...",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        } else {
+                            Text(
+                                "Cambia Password",
+                                color = Color.White,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-// Composable per i campi di testo semplici come nell'immagine
 @Composable
 fun SimpleTextField(
-    label: String, // Etichetta del campo
-    value: TextFieldValue, // Valore corrente
-    onValueChange: (TextFieldValue) -> Unit, // Callback per i cambiamenti
-    enabled: Boolean = true // Se il campo è abilitato
+    label: String,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    enabled: Boolean = true
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // Etichetta sopra il campo
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF424242), // Grigio scuro
+            color = Color(0xFF424242),
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-
-        // Campo di testo con stile minimale
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -258,22 +400,15 @@ fun SimpleTextField(
             enabled = enabled,
             singleLine = true,
             placeholder = {
-                Text(
-                    "Value",
-                    color = Color(0xFFBDBDBD) // Grigio chiaro per placeholder
-                )
+                Text("Value", color = Color(0xFFBDBDBD))
             },
             colors = OutlinedTextFieldDefaults.colors(
-                // Colori per lo stato normale
                 unfocusedBorderColor = Color(0xFFE0E0E0),
                 unfocusedTextColor = Color(0xFF424242),
-                // Colori per lo stato attivo/focus
                 focusedBorderColor = Color(0xFF2196F3),
                 focusedTextColor = Color(0xFF212121),
-                // Colori per lo stato disabilitato
                 disabledBorderColor = Color(0xFFE0E0E0),
                 disabledTextColor = Color(0xFF9E9E9E),
-                // Colore di sfondo
                 unfocusedContainerColor = Color.White,
                 focusedContainerColor = Color.White,
                 disabledContainerColor = Color(0xFFF5F5F5)
@@ -283,3 +418,45 @@ fun SimpleTextField(
     }
 }
 
+@Composable
+fun PasswordTextField(
+    label: String,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    isVisible: Boolean,
+    onVisibilityToggle: () -> Unit,
+    enabled: Boolean = true
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF424242),
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
+            singleLine = true,
+            visualTransformation = if (isVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = onVisibilityToggle) {
+                    Icon(
+                        imageVector = if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (isVisible) "Nascondi password" else "Mostra password"
+                    )
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = Color(0xFFE0E0E0),
+                focusedBorderColor = Color(0xFF2196F3),
+                unfocusedContainerColor = Color.White,
+                focusedContainerColor = Color.White
+            ),
+            shape = RoundedCornerShape(8.dp)
+        )
+    }
+}
