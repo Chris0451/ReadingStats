@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.project.readingstats.features.auth.AuthViewModel
 
 
 /*
@@ -113,5 +114,4 @@ fun RegistrationScreen(
             }
         }
     }
-
 }

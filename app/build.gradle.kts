@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.parcelize)
+    id("kotlin-parcelize")
+
 }
 
 android {
@@ -62,6 +64,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.room.ktx)
 
     //Test
     testImplementation(libs.junit)
@@ -100,4 +104,9 @@ dependencies {
     //Icons
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
+
+    //Coil
+    implementation(libs.coil.compose)
+
+    implementation(libs.gms.code.scanner)
 }

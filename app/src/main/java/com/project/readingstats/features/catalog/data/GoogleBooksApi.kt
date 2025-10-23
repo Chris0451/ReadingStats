@@ -1,9 +1,8 @@
 package com.project.readingstats.features.catalog.data
 
-import androidx.compose.ui.input.key.Key
+import com.project.readingstats.features.catalog.data.dto.VolumeResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
-//import com.project.readingstats.features.catalog.BuildConfig
 
 interface GoogleBooksApi {
     @GET("volumes")
@@ -12,8 +11,9 @@ interface GoogleBooksApi {
         @Query("startIndex") startIndex: Int = 0,
         @Query("maxResults") maxResults: Int = 20,
         @Query("orderBy") orderBy: String? = "relevance",
-        @Query("langRestrict") langRestrict: String? = "it",
-        @Query("projection") projection: String? = "lite",
-        //@Query("key") key: String = BuildConfig.GOOGLE_BOOKS_API_KEY
-    )
+        @Query("projection") projection: String? = "full",
+        @Query("langRestrict") langRestrict: String? = null,
+        @Query("printType") printType: String? = "books",
+        @Query("fields") fields: String? = null
+    ) : VolumeResponse
 }

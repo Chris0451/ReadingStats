@@ -21,10 +21,10 @@ sealed class BottomDest(val route: String, val label: String, val icon: ImageVec
 }
 
 private val BottomItems = listOf(
-    BottomDest.Books,
-    BottomDest.Catalog,
-    BottomDest.Home,
-    BottomDest.Profile
+    BottomDest.Books,    // Indice 0
+    BottomDest.Catalog,  // Indice 1
+    BottomDest.Home,     // Indice 2
+    BottomDest.Profile   // Indice 3
 )
 
 @Composable

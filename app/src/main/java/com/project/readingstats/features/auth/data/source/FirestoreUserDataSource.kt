@@ -49,5 +49,56 @@ class FirestoreUserDataSource (
             email = snapshot.getString("email") ?: "",
         )
     }
+    // Aggiungi questa funzione al tuo FirestoreUserDataSource.kt esistente
+    suspend fun updateUserProfile(
+        uid: String,
+        username: String,
+        name: String,
+        surname: String,
+        email: String
+    ) {
+        try {
+            // Mappa con i nuovi dati da aggiornare
+            val updatedData = mapOf(
+                "username" to username.trim(),
+                "name" to name.trim(),
+                "surname" to surname.trim(),
+                "email" to email.trim(),
+                "updatedAt" to System.currentTimeMillis() // Timestamp dell'aggiornamento
+            )
+
+            // Aggiorna il documento utente su Firestore
+            users.document(uid).update(updatedData).await()
+
+            // Se l'username è cambiato, aggiorna anche la collezione usernames
+            // (questo richiede una transazione per garantire consistenza)
+            db.runTransaction { transaction ->
+                val userDoc = users.document(uid)
+                val currentData = transaction.get(userDoc).data
+                val oldUsername = currentData?.get("username") as? String
+
+                // Se l'username è cambiato
+                if (oldUsername != null && oldUsername != username.trim()) {
+                    // Rimuovi il vecchio username dalla collezione usernames
+                    val oldUsernameRef = usernames.document(oldUsername.lowercase())
+                    transaction.delete(oldUsernameRef)
+
+                    // Aggiungi il nuovo username alla collezione usernames
+                    val newUsernameRef = usernames.document(username.trim().lowercase())
+                    if (transaction.get(newUsernameRef).exists()) {
+                        throw IllegalStateException("USERNAME_TAKEN")
+                    }
+                    transaction.set(newUsernameRef, mapOf("uid" to uid))
+                }
+
+                // Aggiorna i dati utente
+                transaction.update(userDoc, updatedData)
+            }.await()
+
+        } catch (e: Exception) {
+            throw e // Rilancia l'eccezione per gestirla nel ViewModel
+        }
+    }
+
 
 }
