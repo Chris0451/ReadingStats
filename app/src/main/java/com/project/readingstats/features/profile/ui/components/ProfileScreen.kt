@@ -100,9 +100,15 @@ fun ProfileScreen(
 
         "infoSupporto" -> {
             InfoSupporto(
-                onBack = { currentScreen = "profile" }
+                onBack = { currentScreen = "profile" },
+                onAccountDeleted = {
+                    // Logout e torna al login dopo eliminazione account
+                    FirebaseAuth.getInstance().signOut()
+                    onLogout()
+                }
             )
         }
+
     }
 }
 
@@ -157,10 +163,12 @@ fun ProfileHeader(user: UserModelDto?) {
         modifier = Modifier.fillMaxWidth()
     ) {
         AsyncImage(
-            model = user?.username ?: "",
+            model = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
             contentDescription = "Profile picture",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(110.dp).clip(CircleShape)
+            modifier = Modifier
+                .size(110.dp)
+                .clip(CircleShape)
         )
 
         Spacer(Modifier.height(16.dp))
