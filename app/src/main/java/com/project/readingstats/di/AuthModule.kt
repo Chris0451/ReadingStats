@@ -35,6 +35,7 @@ object AuthModule {
         userDs: FirestoreUserDataSource
     ): AuthRepository = AuthRepositoryImpl(authDs, userDs)
 
+    //USE CASES
     @Provides @Singleton
     fun provideCheckUsername(repository: AuthRepository) = CheckUsernameAvailableUseCase(repository)
 

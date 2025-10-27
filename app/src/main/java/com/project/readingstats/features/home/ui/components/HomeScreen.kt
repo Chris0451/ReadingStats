@@ -39,6 +39,8 @@ fun HomeScreen(
         return
     }
 
+    val anyRunning = remember(state.items) { state.items.any { it.isRunning } }
+
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
@@ -49,6 +51,7 @@ fun HomeScreen(
                     item = item,
                     onStart = { viewModel.onStart(item.book) },
                     onStop = { viewModel.onStop(item.book) },
+                    isGlobalRunning = anyRunning
                 )
             }
         }
@@ -69,7 +72,8 @@ fun HomeScreen(
 private fun ReadingCard(
     item: HomeItemState,
     onStart: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    isGlobalRunning: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -141,16 +145,29 @@ private fun ReadingCard(
 
             Spacer(Modifier.height(16.dp))
 
+            val enabled = item.isRunning || !isGlobalRunning
+
             // Pulsante timer
             val btnText = if (item.isRunning) "⏹️ Termina lettura" else "▶️ Riprendi lettura"
             Button(
                 onClick = if (item.isRunning) onStop else onStart,
+                enabled = enabled,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(btnText)
+            }
+
+            if (!enabled && !item.isRunning) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Termina la sessione in corso per avviarne un’altra",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
             }
 
             // Timer live sotto al bottone quando in corso

@@ -61,6 +61,10 @@ class HomeViewModel @Inject constructor(
      * Incapsula eventuali suspend del use case nel viewModelScope.
      */
     fun onStart(book: UiHomeBook) {
+        if (running.value.isNotEmpty() && !running.value.containsKey(book.id)) {
+            Log.w("HomeVM", "Tentativo di avviare una seconda sessione: bloccato.")
+            return
+        }
         if (running.value.containsKey(book.id)) return
 
         val startedAt = startTimer() // <-- senza parametri

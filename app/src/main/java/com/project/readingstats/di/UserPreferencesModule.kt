@@ -1,6 +1,5 @@
 package com.project.readingstats.di
 
-import com.google.firebase.firestore.FirebaseFirestore
 import com.project.readingstats.features.catalog.data.repository.UserPreferencesRepositoryImpl
 import com.project.readingstats.features.catalog.domain.repository.UserPreferencesRepository
 import dagger.Module

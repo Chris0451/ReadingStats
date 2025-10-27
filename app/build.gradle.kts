@@ -22,7 +22,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.project.readingstats.HiltTestRunner"
 
         val booksKey = project.findProperty("GOOGLE_BOOKS_API_KEY") as String? ?: ""
         buildConfigField("String", "GOOGLE_BOOKS_API_KEY", "\"$booksKey\"")
@@ -45,9 +45,28 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    packaging {
+        resources {
+            // Escludi duplicati tipici di META-INF
+            excludes += setOf(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md",
+                "META-INF/NOTICE.md",
+                "META-INF/LICENSE",
+                "META-INF/NOTICE",
+                "META-INF/DEPENDENCIES",
+                "/META-INF/{AL2.0,LGPL2.1}" // comune
+            )
+            // In alternativa: pickFirsts += "META-INF/LICENSE.md"
+        }
+    }
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true // opzionale ma utile
     }
 }
 
@@ -109,4 +128,27 @@ dependencies {
     implementation(libs.coil.compose)
 
     implementation(libs.gms.code.scanner)
+
+    // --- Local unit test (JVM)
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(libs.androidx.navigation.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.google.truth)
+
+    // --- Instrumented (UI / framework Android)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+
+    // --- Compose UI testing con BOM
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // --- Hilt test (strumentali)
+    androidTestImplementation(libs.hilt.android.testing)
+    kaptAndroidTest(libs.hilt.android.compiler)
+
+    testImplementation(libs.robolectric)
 }
