@@ -25,7 +25,7 @@ import com.project.readingstats.features.auth.data.model.UserModelDto
 fun DatiPersonali(
     user: UserModelDto?,
     onBack: () -> Unit,
-    onEdit: () -> Unit  // ← Questa callback viene chiamata quando clicchi "Modifica"
+    onEdit: () -> Unit
 ) {
     Column(
         Modifier

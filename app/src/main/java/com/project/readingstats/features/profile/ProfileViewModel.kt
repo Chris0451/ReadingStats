@@ -17,7 +17,6 @@ class ProfileViewModel(
     val user: StateFlow<UserModelDto?> = _user
 
     private val _loading = MutableStateFlow(false)
-    val loading: StateFlow<Boolean> = _loading
 
     // Stato per gestire il salvataggio degli aggiornamenti
     private val _updateLoading = MutableStateFlow(false)
@@ -89,10 +88,6 @@ class ProfileViewModel(
                 _updateLoading.value = false // Fine del caricamento
             }
         }
-    }
-
-    fun refreshUser() {
-        loadCurrentUser()
     }
 
     // Funzione per resettare il risultato dell'aggiornamento

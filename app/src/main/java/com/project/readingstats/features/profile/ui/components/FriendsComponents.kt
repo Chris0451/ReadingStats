@@ -321,38 +321,3 @@ fun RequestItem(
         }
     }
 }
-
-/**
- * Componente per stati di caricamento
- */
-@Composable
-fun LoadingIndicator(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-/**
- * Componente per messaggi di errore o testo centrato
- */
-@Composable
-fun CenteredMessage(
-    message: String,
-    color: Color = Color.Gray,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = message,
-            color = color,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}

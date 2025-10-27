@@ -27,7 +27,7 @@ import com.project.readingstats.features.shelves.domain.model.ReadingStatus
 @Composable
 fun FriendDetailsScreen(
     friend: Friend,
-    friendBooks: List<UserBook>, // Lista libri dell'amico
+    friendBooks: List<UserBook>,
     onBack: () -> Unit,
     onRemoveFriend:  (String, () -> Unit) -> Unit
 ) {

@@ -1,6 +1,5 @@
 package com.project.readingstats.features.auth
 
-import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.project.readingstats.features.auth.domain.repository.LoginResult
@@ -17,9 +16,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.project.readingstats.features.auth.domain.model.LoginFormState
 import com.project.readingstats.features.auth.domain.model.RegistrationFormState
-
-
-
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(

@@ -210,15 +210,6 @@ fun ListaAmici(
     }
 }
 
-// Extension function per il filtro di ricerca
-private fun Friend.matches(searchQuery: String): Boolean {
-    if (searchQuery.isBlank()) return true
-    val query = searchQuery.lowercase()
-    return username.lowercase().contains(query) ||
-            fullName.lowercase().contains(query) ||
-            email.lowercase().contains(query)
-}
-
 @Composable
 private fun LoadingIndicator() {
     Box(
