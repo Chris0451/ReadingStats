@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.features.auth.data.model.UserModelDto
-import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
