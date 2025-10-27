@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.features.auth.data.model.UserModelDto
+import com.project.readingstats.features.profile.ProfileViewModel
 
 @Composable
 fun ProfileScreen(

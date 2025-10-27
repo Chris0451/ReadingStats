@@ -20,9 +20,9 @@ import com.project.readingstats.features.auth.ui.components.LoginScreen
 import com.project.readingstats.features.auth.ui.components.RegistrationScreen
 import com.project.readingstats.features.bookdetail.ui.components.BookDetailScreen
 import com.project.readingstats.features.catalog.domain.model.Book
-import com.project.readingstats.features.profile.ui.components.Friend
+import com.project.readingstats.features.profile.data.model.Friend
 import com.project.readingstats.features.profile.ui.components.FriendDetailsScreen
-import com.project.readingstats.features.profile.ui.components.FriendsManager
+import com.project.readingstats.features.profile.domain.manager.FriendsManager
 import com.project.readingstats.features.profile.ui.components.ListaAmici
 import com.project.readingstats.features.shelves.domain.model.UserBook
 
@@ -116,7 +116,7 @@ fun BookDetailRoute(
     fromShelf: Boolean,
     onBack: () -> Unit
 ) {
-    BookDetailScreen(book = book, fromShelf = fromShelf, onBack = onBack)
+    BookDetailScreen(book = book, onBack = onBack)
 }
 
 @Composable

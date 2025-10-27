@@ -64,8 +64,7 @@ class BookDetailScreenInstrumentedTest {
                 composable("detail/{volumeId}") {
                     BookDetailScreen(
                         book = testBook(volumeId, pageCount = pageCount),
-                        onBack = {},
-                        fromShelf = false
+                        onBack = {}
                     )
                 }
             }

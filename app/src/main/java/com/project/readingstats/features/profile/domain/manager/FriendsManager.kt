@@ -1,10 +1,15 @@
-package com.project.readingstats.features.profile.ui.components
+package com.project.readingstats.features.profile.domain.manager
 
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.project.readingstats.features.shelves.domain.model.UserBook
+import com.project.readingstats.features.profile.data.model.Friend
+import com.project.readingstats.features.profile.data.model.FriendRequest
+import com.project.readingstats.features.profile.data.model.UserRelationshipStatus
 import com.project.readingstats.features.shelves.domain.model.ReadingStatus
+import com.project.readingstats.features.shelves.domain.model.UserBook
 
 /**
  * Manager centralizzato per gestire tutte le operazioni relative agli amici e richieste di amicizia
@@ -446,7 +451,7 @@ object FriendsManager {
     /**
      * Mappa un documento Firestore a un oggetto Friend
      */
-    private fun mapDocumentToFriend(document: com.google.firebase.firestore.DocumentSnapshot): Friend? {
+    private fun mapDocumentToFriend(document: DocumentSnapshot): Friend? {
         return try {
             Friend(
                 uid = document.getString("uid") ?: "",
@@ -463,7 +468,7 @@ object FriendsManager {
     /**
      * Mappa un documento Firestore a un oggetto FriendRequest
      */
-    private fun mapDocumentToFriendRequest(document: com.google.firebase.firestore.DocumentSnapshot): FriendRequest? {
+    private fun mapDocumentToFriendRequest(document: DocumentSnapshot): FriendRequest? {
         return try {
             FriendRequest(
                 id = document.id,
@@ -481,7 +486,7 @@ object FriendsManager {
     /**
      * Mappa un documento Firestore a un oggetto UserBook
      */
-    private fun mapDocumentToUserBook(document: com.google.firebase.firestore.DocumentSnapshot): UserBook? {
+    private fun mapDocumentToUserBook(document: DocumentSnapshot): UserBook? {
         return try {
             UserBook(
                 id = document.id,
@@ -529,12 +534,12 @@ object FriendsManager {
             // Rimuovi friendUid dalla lista friends dell'utente corrente
             db.collection("users")
                 .document(currentUser.uid)
-                .update("friends", com.google.firebase.firestore.FieldValue.arrayRemove(friendUid))
+                .update("friends", FieldValue.arrayRemove(friendUid))
                 .addOnSuccessListener {
                     // Rimuovi currentUser.uid dalla lista friends dell'amico
                     db.collection("users")
                         .document(friendUid)
-                        .update("friends", com.google.firebase.firestore.FieldValue.arrayRemove(currentUser.uid))
+                        .update("friends", FieldValue.arrayRemove(currentUser.uid))
                         .addOnSuccessListener {
                             onResult(true, null)
                         }

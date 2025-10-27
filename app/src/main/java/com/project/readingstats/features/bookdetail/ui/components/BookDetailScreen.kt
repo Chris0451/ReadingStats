@@ -67,8 +67,7 @@ enum class ReadingFlowMode { START, UPDATE }
 @Composable
 fun BookDetailScreen(
     book: Book,
-    onBack: () -> Unit,
-    fromShelf: Boolean
+    onBack: () -> Unit
 ){
     BackHandler { onBack() }
     val vm: BookDetailViewModel = hiltViewModel()

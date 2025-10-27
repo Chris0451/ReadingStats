@@ -12,6 +12,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.project.readingstats.features.profile.data.model.Friend
+import com.project.readingstats.features.profile.data.model.FriendRequest
+import com.project.readingstats.features.profile.domain.manager.FriendsManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

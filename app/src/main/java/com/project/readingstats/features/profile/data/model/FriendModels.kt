@@ -1,4 +1,4 @@
-package com.project.readingstats.features.profile.ui.components
+package com.project.readingstats.features.profile.data.model
 
 import com.google.firebase.Timestamp
 import android.os.Parcelable

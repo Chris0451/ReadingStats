@@ -64,7 +64,7 @@ fun RegistrationScreen(
 
             OutlinedTextField(
                 value = state.username, onValueChange = viewModel::onUsernameChange,
-                label = { Text("Username") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                label = { Text("Username (min. 4 caratteri)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                 supportingText = {
                     when(state.usernameAvailable){
                         true -> Text("Username disponibile", color = MaterialTheme.colorScheme.primary)

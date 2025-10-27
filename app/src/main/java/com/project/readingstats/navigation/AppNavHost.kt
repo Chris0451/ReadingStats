@@ -21,8 +21,8 @@ import com.project.readingstats.core.ui.components.BottomDest
 import com.project.readingstats.core.ui.components.HeaderComponent
 import com.project.readingstats.core.ui.components.NavBarComponent
 import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
-import com.project.readingstats.features.profile.ui.components.ProfileViewModel
-import com.project.readingstats.features.profile.ui.components.Friend
+import com.project.readingstats.features.profile.ProfileViewModel
+import com.project.readingstats.features.profile.data.model.Friend
 import com.project.readingstats.features.catalog.domain.model.Book
 import com.project.readingstats.features.home.ui.components.HomeScreen
 import com.project.readingstats.features.catalog.ui.components.CatalogScreen

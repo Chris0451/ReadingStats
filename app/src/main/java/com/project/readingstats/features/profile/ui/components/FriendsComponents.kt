@@ -15,6 +15,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.project.readingstats.features.profile.data.model.Friend
+import com.project.readingstats.features.profile.data.model.FriendRequest
+import com.project.readingstats.features.profile.data.model.UserRelationshipStatus
+import com.project.readingstats.features.profile.domain.manager.FriendsManager
 
 /**
  * Componente per la barra di ricerca e i tab di selezione

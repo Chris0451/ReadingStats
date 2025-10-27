@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.project.readingstats.features.profile.data.model.Friend
 import com.project.readingstats.features.shelves.domain.model.UserBook
 import com.project.readingstats.features.shelves.domain.model.ReadingStatus
 

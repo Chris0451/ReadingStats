@@ -1,10 +1,10 @@
-package com.project.readingstats.features.profile.ui.components
+package com.project.readingstats.features.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.project.readingstats.features.auth.data.model.UserModelDto
 import com.project.readingstats.features.auth.data.source.FirestoreUserDataSource
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
