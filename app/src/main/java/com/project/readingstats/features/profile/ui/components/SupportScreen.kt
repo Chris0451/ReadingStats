@@ -244,11 +244,9 @@ fun InfoSupporto(
 
                             user.reauthenticate(credential)
                                 .addOnSuccessListener {
-                                    // Elimina dati Firestore
                                     db.collection("users").document(user.uid)
                                         .delete()
                                         .addOnSuccessListener {
-                                            // Elimina username reservation
                                             db.collection("usernames")
                                                 .whereEqualTo("uid", user.uid)
                                                 .get()
@@ -257,8 +255,6 @@ fun InfoSupporto(
                                                         doc.reference.delete()
                                                     }
                                                 }
-
-                                            // Elimina account Firebase Auth
                                             user.delete()
                                                 .addOnSuccessListener {
                                                     isDeleting = false

@@ -20,7 +20,7 @@ import com.project.readingstats.features.profile.domain.manager.FriendsManager
 @Composable
 fun ListaAmici(
     onBack: () -> Unit,
-    onNavigateToFriendDetails: (Friend) -> Unit = {} // ===== NUOVO PARAMETRO =====
+    onNavigateToFriendDetails: (Friend) -> Unit = {}
 ) {
     // Stati della UI
     var selectedTab by remember { mutableStateOf(0) }
@@ -122,7 +122,6 @@ fun ListaAmici(
                 }
                 else -> {
                     when (selectedTab) {
-                        // Tab Richieste
                         1 -> {
                             if (requestsList.isEmpty()) {
                                 CenteredMessage(message = "Nessuna richiesta ricevuta")
