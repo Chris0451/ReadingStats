@@ -44,7 +44,7 @@ fun ListaAmici(
                 // Carica amici
                 FriendsManager.loadFriends { friends, error ->
                     friendsList = friends
-                    errorMessage = error
+                    errorMessage    = error
                     isLoading = false
                 }
             }

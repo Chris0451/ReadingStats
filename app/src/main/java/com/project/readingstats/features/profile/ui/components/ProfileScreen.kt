@@ -30,9 +30,7 @@ fun ProfileScreen(
     user: UserModelDto?,
     profileViewModel: ProfileViewModel,
     onLogout: () -> Unit,
-    onNavigateToFriends: () -> Unit = {},
-    onDatiPersonali: () -> Unit = {},
-    onInfoSupporto: () -> Unit = {}
+    onNavigateToFriends: () -> Unit = {}
 ) {
     var currentScreen by remember { mutableStateOf("profile") }
     val updateLoading by profileViewModel.updateLoading.collectAsState()
